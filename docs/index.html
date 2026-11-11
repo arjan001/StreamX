@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streamix - IPTV Player</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #0b1013;
+      color: #fff;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    h1 {
+      color: #f09018;
+      font-size: 2.5em;
+    }
+    .download-btn {
+      display: inline-block;
+      background: #f09018;
+      color: white;
+      padding: 15px 30px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 18px;
+      margin: 20px 0;
+    }
+    .download-btn:hover {
+      background: #d67a0d;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #333;
+    }
+    a {
+      color: #f09018;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Streamix - IPTV Player</h1>
+    <p>A neutral IPTV player for live TV, movies, and series from user-provided sources.</p>
+    
+    <h2>Latest Release</h2>
+    <p><strong>Version VERSION_PLACEHOLDER</strong></p>
+    
+    <div style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
+      <a href="https://github.com/arjan001/SteamX/releases/download/vVERSION_PLACEHOLDER/app-arm64-v8a-debug.apk" class="download-btn" download>
+        📱 Download ARM64 APK (Most devices)
+      </a>
+      <a href="https://github.com/arjan001/SteamX/releases/download/vVERSION_PLACEHOLDER/app-armeabi-v7a-debug.apk" class="download-btn" download>
+        📱 Download ARMv7 APK (Older devices)
+      </a>
+      <a href="https://github.com/arjan001/SteamX/releases/download/vVERSION_PLACEHOLDER/app-universal-debug.apk" class="download-btn" download>
+        📱 Download Universal APK (Works on all)
+      </a>
+    </div>
+    <p style="color: #888; margin-top: 10px; font-size: 14px;">
+      Choose the APK that matches your device. ARM64 works for most modern Android devices.
+    </p>
+    
+    <h2>APK Details</h2>
+    <table>
+      <tr>
+        <th>Architecture</th>
+        <th>Best For</th>
+        <th>Download</th>
+      </tr>
+      <tr>
+        <td>ARM64 (arm64-v8a)</td>
+        <td>Most modern phones and TV boxes (recommended)</td>
+        <td><a href="https://github.com/arjan001/SteamX/releases/download/vVERSION_PLACEHOLDER/app-arm64-v8a-debug.apk" download>Download</a></td>
+      </tr>
+      <tr>
+        <td>ARMv7 (armeabi-v7a)</td>
+        <td>Older devices and legacy TV boxes</td>
+        <td><a href="https://github.com/arjan001/SteamX/releases/download/vVERSION_PLACEHOLDER/app-armeabi-v7a-debug.apk" download>Download</a></td>
+      </tr>
+      <tr>
+        <td>Universal</td>
+        <td>Unknown device type (larger file)</td>
+        <td><a href="https://github.com/arjan001/SteamX/releases/download/vVERSION_PLACEHOLDER/app-universal-debug.apk" download>Download</a></td>
+      </tr>
+    </table>
+    
+    <h2>New Features</h2>
+    <ul>
+      <li>✅ Adult content section with bunny icon (top right)</li>
+      <li>✅ Tags rail with content counts</li>
+      <li>✅ Cast rail with avatars and initials fallback</li>
+      <li>✅ Sex filter (straight, gay, bisexual, lesbian, transgender)</li>
+      <li>✅ Purple/pink hover effects on adult cards</li>
+      <li>✅ 15 sports categories (Football, Basketball, Tennis, F1, etc.)</li>
+      <li>✅ EPG integration with Now/Next display</li>
+      <li>✅ On-device catalogue with search and filtering</li>
+    </ul>
+    
+    <h2>Supported Sources</h2>
+    <ul>
+      <li>Xtream-style servers (address, username, password)</li>
+      <li>M3U/M3U8 playlists with optional XMLTV guide</li>
+      <li>Single stream links</li>
+      <li>Stalker/MAC portals (Android and iOS)</li>
+    </ul>
+    
+    <h2>Installation</h2>
+    <ol>
+      <li>Download the APK for your device architecture using the buttons above</li>
+      <li>Enable "Install from unknown sources" in settings</li>
+      <li>Open the APK file to install</li>
+    </ol>
+    
+    <h2>Documentation</h2>
+    <ul>
+      <li><a href="internal-docs/01-playlist-formats.md">Playlist Formats</a></li>
+      <li><a href="internal-docs/02-xtream-api.md">Xtream API</a></li>
+      <li><a href="internal-docs/03-catchup-epg.md">Catch-up & EPG</a></li>
+      <li><a href="internal-docs/04-stalker-portals.md">Stalker Portals</a></li>
+      <li><a href="internal-docs/05-platform-engines.md">Platform Engines</a></li>
+      <li><a href="internal-docs/06-architecture.md">Architecture</a></li>
+    </ul>
+    
+    <h2>Build Status</h2>
+    <p>
+      <a href="https://github.com/arjan001/SteamX/actions/workflows/build-android-apk.yml">
+        <img src="https://github.com/arjan001/SteamX/actions/workflows/build-android-apk.yml/badge.svg" alt="Build Status" />
+      </a>
+    </p>
+  </div>
+</body>
+</html>

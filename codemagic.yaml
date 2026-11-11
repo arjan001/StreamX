@@ -1,0 +1,64 @@
+# Codemagic cloud build for the iPhone / iPad app (Apple needs macOS + Xcode, which
+# this repository's own machines do not have).
+#
+# One-time setup, in the Codemagic UI (nothing secret is stored in this file):
+#   1. Teams > Integrations > App Store Connect: add an App Store Connect API key
+#      (Issuer ID, Key ID, the .p8 private key) and name the integration
+#      `streamix_app_store_connect` — the name used below. Needs a paid Apple
+#      Developer Program membership.
+#   2. In App Store Connect create the app record for bundle id
+#      com.streamx.app.
+#   3. Optional: a variable group `streamix_build` with STREAMIX_API_ORIGIN, the
+#      server origin baked into the bundle (leave unset for a server-less build).
+#
+# Codemagic creates/fetches the distribution certificate and the App Store
+# provisioning profile itself through the API key (`ios_signing` below).
+workflows:
+  ios-app-store:
+    name: Streamix iOS (TestFlight / App Store)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: streamix_app_store_connect
+    environment:
+      groups:
+        - streamix_build          # STREAMIX_API_ORIGIN (optional)
+      node: 22
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.streamx.app
+      vars:
+        XCODE_WORKSPACE: apps/mobile/ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+    scripts:
+      - name: Install dependencies
+        script: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm install --frozen-lockfile
+      - name: Build the web bundle for iOS
+        script: |
+          cd apps/mobile
+          pnpm run build:web
+      - name: Capacitor sync (copies the bundle, writes the Podfile, runs pod install)
+        script: |
+          cd apps/mobile
+          npx cap sync ios
+      - name: Stamp the version from version.json
+        script: node apps/mobile/scripts/ios-stamp.mjs
+      - name: Apply the signing profile to the Xcode project
+        script: xcode-project use-profiles
+      - name: Build the archive and export the .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

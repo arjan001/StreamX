@@ -1,0 +1,28 @@
+{
+  "name": "streamix-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Streamix \u2014 the television app: one React front end, packaged for the web, Android, Samsung Tizen and LG webOS.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "brand": "node scripts/brand-apply.mjs",
+    "build": "pnpm --filter @iptv/web build && node scripts/stamp-build.mjs apps/web/dist && node scripts/css-compat.mjs apps/web/dist",
+    "test": "node --experimental-strip-types --no-warnings --test 'packages/*/test/*.test.ts' 'apps/web/src/lib/*.test.ts' 'apps/web/src/lib/providers/*.test.ts' 'scripts/*.test.mjs'",
+    "tizen": "node apps/tizen/build.mjs && node apps/tizen/package.mjs",
+    "typecheck": "tsc -b packages/core-m3u packages/core-xtream && tsc --noEmit -p packages/core-stalker && tsc --noEmit -p packages/core-store && pnpm --filter @iptv/web exec tsc -b",
+    "version": "node scripts/version.mjs",
+    "version:apply": "node scripts/version.mjs apply",
+    "version:bump": "node scripts/version.mjs bump",
+    "version:check": "node scripts/version.mjs --check",
+    "web": "pnpm --filter @iptv/web dev",
+    "webos": "node apps/webos/build.mjs && node apps/webos/package.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "playwright-core": "^1.62.1",
+    "typescript": "^5.9.2"
+  }
+}

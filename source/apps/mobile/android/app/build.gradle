@@ -1,0 +1,256 @@
+apply plugin: 'com.android.application'
+
+/*
+ * Release signing, from a file outside the repository.
+ *
+ * A debug APK is signed with the shared debug key every SDK install carries. It
+ * installs, and it is also the reason a build feels like somebody's test: no
+ * upgrade path (a different key cannot replace it), `android:debuggable`, and a
+ * warning from the installer. So there is a real key, and it lives in
+ * ~/.streamix-signing — never in the tree, because committing a signing key hands
+ * anyone who reads the repo the ability to publish an update to this app.
+ *
+ * Absent, the release build still runs and stays unsigned rather than failing, so
+ * a checkout on another machine is not broken by a missing secret.
+ */
+def signingProps = new Properties()
+def signingFile = file(System.getenv('STREAMIX_KEYSTORE_PROPS')
+    ?: "${System.properties['user.home']}/.streamix-signing/keystore.properties")
+if (signingFile.exists()) {
+    signingFile.withInputStream { signingProps.load(it) }
+}
+def canSign = signingProps.containsKey('storeFile') && file(signingProps['storeFile']).exists()
+
+android {
+    /* The Java/Kotlin namespace (the source package), which is NOT the app's
+       identity; `applicationId` below is the identity. */
+    namespace "com.easyred.streamix"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        /* Written by scripts/brand-apply.mjs from brand.config.json
+           (android.applicationId). Do not hand-edit inside the fence. */
+        // brand:applicationId:start
+        applicationId "com.easyred.streamix"
+        // brand:applicationId:end
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        /* 5 / 1.2.2 — focus containment: every overlay is a boundary, Tab is
+           contained too, and focus is restored when the element holding it is
+           unmounted. 1.2 was the remote-control release; 1.2.1 halved the
+           universal APK. Each of these went out, so each gets its own code —
+           two different files under one versionCode is how "why is mine
+           different" starts. */
+        /* 6 / 1.2.3 — the audit round: focus can no longer land on something
+           invisible (a faded container, a 1px splitter), closing a dialog returns
+           focus to what opened it, Escape and BACK agree, and the Layout setting
+           finally changes the launcher. */
+        /* 7 / 1.3.0 — Streamix: the whole identity now comes from brand.config.json
+           and brand/logo.png, plus an animated splash and a landscape lock. A minor
+           bump rather than a patch, because the app is a different product name. */
+        versionCode 203
+        versionName "1.64.1"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        /**
+         * The architectures this app supports, stated once.
+         *
+         * `splits.include` below decides which per-ABI APKs get BUILT; it does not
+         * decide what goes inside them, and it has no say at all over the universal
+         * APK — that one packages every ABI the dependencies happen to provide. So
+         * the universal build was shipping x86 decoders even though x86 was not in
+         * the include list, and `collect-apks.mjs` only ever checked the three ABIs
+         * the list named, so nothing reported the discrepancy.
+         *
+         * Measured on the 1.2 build: 198.5MB of the universal APK's 204MB was native
+         * libraries, and 106.4MB of that was x86 (48.3MB) plus x86_64 (58.1MB).
+         * More than half the file, for architectures no phone and no TV box has —
+         * x86 Android phones ended around 2016, and every Android TV and Google TV
+         * reference platform, Fire TV and Shield included, is ARM.
+         *
+         * `abiFilters` applies to every output, universal included, so this is the
+         * one place that can say it. Add 'x86_64' back here AND to `splits.include`
+         * for an Android emulator or an Intel Chromebook — both run ARM builds
+         * through a translation layer, so it is a performance choice rather than a
+         * compatibility one, and it costs 58MB in the file meant for people who do
+         * not know what their box is.
+         */
+        ndk {
+            /*
+             * ARM only — and both x86 flavours are gone on purpose.
+             *
+             * They were added for EMULATORS, and the reasoning is worth keeping
+             * because it was sound and is no longer the trade being made. x86_64
+             * went in (2026-09-05) so the Android Studio television emulator had
+             * a matching libvlc.so; x86 went in (2026-09-12) because
+             * `system-images;android-30;android-tv;x86` reports `x86` as its ONLY
+             * abilist entry, so nothing of ours would install there at all.
+             *
+             * What that cost was never paid by a developer. `abiFilters` applies
+             * to the universal APK, so every viewer who did not know which box
+             * they had downloaded both x86 decoder sets: measured at 106.4MB of
+             * a 179.6MB file — 59% of it — for architectures no television has.
+             * x86 Android phones ended around 2016, and every Android TV and
+             * Google TV reference platform, Fire TV and Shield included, is ARM.
+             * "remove that emulator one, i think its messing up the universal one
+             * as well." It was.
+             *
+             * The emulator rig still works: `system-images;android-30;google_apis;x86_64`
+             * lists ARM in its abilist and runs our ARM builds through the
+             * translation layer (see `scripts/tv-emulator.sh` and gotcha 163).
+             * The `android-tv;x86` image is the one that loses — a development
+             * rig, not a customer, and not worth 106MB on every unknown box.
+             */
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
+        aaptOptions {
+             // Omit sourcemaps from the packaged web bundle — they are for
+             // operators, not for every install on a TV box.
+             // *.lua / *.sofa: libvlc-all ships YouTube scrapers and spatial
+             // HRTFs we never load for Xtream/HLS/MKV playback.
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.map:*.lua:*.sofa'
+        }
+    }
+    /*
+     * One APK per ABI, plus one that holds both.
+     *
+     * libVLC ships a decoder set per architecture, which is what makes these files
+     * large enough to be worth splitting at all. arm64-v8a covers every Android
+     * device sold in years; armeabi-v7a covers older phones and a lot of TV boxes —
+     * which is exactly the hardware whose WebView cannot decode HEVC, so it is the
+     * hardware that needs libVLC most.
+     *
+     * The universal APK exists for one situation: somebody who does not know which
+     * of the two their box is. With `abiFilters` above holding it to the same two,
+     * it is now the sum of them rather than the sum of everything libVLC builds for.
+     */
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a'
+            universalApk true
+        }
+    }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging false
+        }
+    }
+    /*
+     * libvlc-all's libc++_shared.so ships with full DWARF (~9MB arm64). Strip
+     * after merge with NDK llvm-strip — libvlc.so is already stripped by
+     * VideoLAN; this mainly cuts libc++. Plugin modules cannot be dropped from
+     * the Maven AAR (one monolithic .so); a leaner decoder set needs a custom
+     * vlc-android rebuild.
+     */
+    applicationVariants.configureEach { variant ->
+        tasks.named("merge${variant.name.capitalize()}NativeLibs").configure {
+            doLast {
+                def ndkRoots = []
+                def ndkHome = System.getenv('ANDROID_NDK_HOME')
+                if (ndkHome) ndkRoots << ndkHome
+                [System.getenv('ANDROID_SDK_ROOT'), System.getenv('ANDROID_HOME')].findAll { it }.unique().each { sdk ->
+                    ndkRoots << "${sdk}/ndk-bundle"
+                    def side = file("${sdk}/ndk")
+                    if (side.directory) {
+                        side.listFiles()?.findAll { it.directory }?.sort { a, b -> b.name <=> a.name }?.each { ndkRoots << it.absolutePath }
+                    }
+                }
+                // `.exe` as well as the bare name: the NDK ships llvm-strip.exe on
+                // Windows, so a glob for `llvm-strip` alone matched nothing there and
+                // the build fell through to the Linux fallback below and died with
+                // "A problem occurred starting process '/usr/bin/strip'".
+                def stripBin = ndkRoots.findResult { root ->
+                    if (!root || !file(root).directory) return null
+                    def hits = fileTree(dir: root, include: ['**/llvm-strip', '**/llvm-strip.exe']).files
+                    hits ? hits.iterator().next().absolutePath : null
+                }
+                if (!stripBin && file('/usr/bin/strip').exists()) stripBin = '/usr/bin/strip'
+                // Stripping is a size optimisation, not a correctness one. No strip
+                // binary anywhere means a fatter APK, which is worth strictly more
+                // than no APK at all.
+                if (!stripBin) {
+                    logger.lifecycle("no llvm-strip found in any NDK; shipping unstripped native libs")
+                    return
+                }
+                outputs.files.each { out ->
+                    if (!out.exists()) return
+                    fileTree(dir: out, include: '**/*.so').each { so ->
+                        exec {
+                            commandLine stripBin, '--strip-unneeded', so.absolutePath
+                            ignoreExitValue true
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (canSign) {
+        signingConfigs {
+            release {
+                storeFile file(signingProps['storeFile'])
+                storePassword signingProps['storePassword']
+                keyAlias signingProps['keyAlias']
+                keyPassword signingProps['keyPassword']
+                /*
+                 * v1 as well as v2/v3: Android 6 and 7 devices — which is a lot of
+                 * the TV boxes this app is for — only understand the JAR signature.
+                 */
+                v1SigningEnabled true
+                v2SigningEnabled true
+            }
+        }
+    }
+    buildTypes {
+        release {
+            /*
+             * Shrinking is off deliberately. Capacitor resolves plugin classes by
+             * name from a generated list, and libVLC's JNI layer looks its Java
+             * classes up from C — neither is visible to the shrinker, so the first
+             * thing R8 does is delete the native player and the bridge. Turning
+             * this on needs keep rules written against both, and an APK that runs
+             * is worth more than one that is 2MB smaller.
+             */
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (canSign) signingConfig signingConfigs.release
+        }
+        debug {
+            // Distinct id, so a debug build can sit beside a release one on the
+            // same device instead of one refusing to install over the other.
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    // The native playback engine. See StreamixPlayerPlugin.
+    implementation "org.videolan.android:libvlc-all:$libvlcVersion"
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

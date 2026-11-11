@@ -1,0 +1,33 @@
+{
+  "name": "Streamix",
+  "wordmark": "STREAMIX",
+  "tagline": "A player for your own sources.",
+  "description": "A player for the TV sources you add — playlists, Xtream servers and portals. Contains no channels.",
+  "logo": "brand/logo.png",
+  "accent": "#f09018",
+  "ground": "#0b1013",
+  "site": "",
+  "android": {
+    "applicationId": "com.easyred.streamix",
+    "orientation": "sensorLandscape",
+    "playStoreUrl": ""
+  },
+  "code": "STX",
+  "ios": {
+    "bundleId": "com.easyred.streamix",
+    "appStoreUrl": ""
+  },
+  "publisher": {
+    "name": "Streamix",
+    "email": "info@easyred.com",
+    "website": "",
+    "address": "",
+    "governingLaw": "",
+    "termsEffectiveDate": "2026-10-01",
+    "privacyEffectiveDate": "2026-10-01"
+  },
+  "captions": {
+    "provider": "Soniox",
+    "privacyUrl": "https://soniox.com/policies/privacy-policy"
+  }
+}

@@ -1,0 +1,13 @@
+["avformat","avcodec","avfilter","swresample","swscale",
+ "format-mp4","demuxer-matroska","demuxer-avi","demuxer-mpegts","demuxer-asf","demuxer-flv","demuxer-mpeg",
+ "parser-aac","parser-ac3","parser-h264","parser-hevc","parser-vp8","parser-vp9","parser-av1",
+ "parser-mpeg4video","parser-mpegvideo","parser-mpegaudio","parser-vorbis","parser-opus","parser-flac","parser-dca","parser-h263",
+ "decoder-aac","decoder-ac3","decoder-eac3","decoder-dca","decoder-truehd","decoder-mlp",
+ "decoder-mp3float","decoder-mp2float","decoder-flac","decoder-vorbis","decoder-opus","decoder-alac",
+ "decoder-pcm_s16le","decoder-pcm_s24le","decoder-pcm_s32le","decoder-pcm_s16be","decoder-pcm_u8","decoder-pcm_f32le",
+ "decoder-wmav2","decoder-wmapro",
+ "encoder-aac",
+ "decoder-h264","decoder-hevc","decoder-vp8","decoder-vp9","decoder-mpeg4","decoder-mpeg2video","decoder-mpeg1video",
+ "decoder-msmpeg4v3","decoder-wmv3","decoder-vc1",
+ "bsf-aac_adtstoasc","bsf-extract_extradata",
+ "filter-aformat","filter-anull","filter-format"]

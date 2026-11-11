@@ -1,0 +1,3128 @@
+/*
+ * Tailwind is told exactly what to scan, because auto-detection scanned the
+ * build output.
+ *
+ * v4 discovers source files by walking up from this stylesheet and skipping
+ * whatever `.gitignore` skips. `dist/` and `dist-app/` are ignored — but
+ * `apps/web/dist-plain/` and `apps/web/dist-local/` are not, and one of them is
+ * even committed. So Tailwind was reading LAST BUILD'S JavaScript as source and
+ * generating utilities for class names that no longer exist anywhere: sweeping
+ * `focus-visible:border-tally` out of nineteen components left the utility still
+ * being emitted, because a stale bundle still mentioned it. A class the app
+ * cannot use is mostly harmless; a class that contradicts a deliberate change is
+ * not, and it took a probe to notice.
+ *
+ * `source(none)` turns the walk off and the two globs below are the whole truth.
+ * Deleting the stale directories would also work and is not this file's call to
+ * make — one of them is tracked.
+ */
+@import 'tailwindcss' source(none);
+@source '../index.html';
+@source '../src/**/*.{ts,tsx}';
+
+/* ── colour ─────────────────────────────────────────────────────────────────
+   Ten tokens carry the entire interface. Every component references them and
+   none of them names a colour, which is what makes four palettes in two modes a
+   data change rather than a rewrite.
+
+   The values here are Midnight dark — the original instrument panel — and they
+   are also the fallback: a palette block that forgets a token inherits this one
+   rather than rendering something invisible. `lib/skin.ts` publishes
+   `data-theme` and `data-mode` on <html> and the blocks below re-point the
+   variables; Tailwind v4 emits `var(--color-…)` into every utility, so nothing
+   has to be recompiled or re-declared per theme. */
+@theme {
+  --color-ground: #0b1013;
+  --color-panel: #121a1f;
+  --color-panel-2: #18242a;
+  --color-rule: #22323a;
+  --color-ink: #e7edef;
+  --color-ink-2: #9fb0b7;
+  --color-ink-3: #6b8089;
+  --color-tally: #e8a34a;
+  /*
+   * The highlight, and it is NOT the accent.
+   *
+   * These were one colour, so the row a remote is standing on and the row that
+   * is currently selected were painted the same amber — reported as "right now
+   * the selected one and the one that has the highlight they are both the same".
+   * On a television that is the one distinction that has to be instant: SELECTED
+   * is a fact about the app, HIGHLIGHT is where your next press will land.
+   *
+   * Near-white by default because it has to contrast with every accent in every
+   * palette, and a theme is free to override it — `neon` glows cyan, `cinema`
+   * stays white. Overridable per viewer too; see `Tint` in lib/skin.ts.
+   */
+  --color-focus: #f4f9fb;
+  --color-live: #3fb98f;
+  --color-alert: #e0715f;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Midnight — cool slate, amber tally. */
+html[data-theme='midnight'][data-mode='light'] {
+  --color-ground: #eaeff1;  --color-panel: #ffffff;   --color-panel-2: #dde6ea;
+  --color-rule: #bcccd4;    --color-ink: #0c161b;     --color-ink-2: #3d4f57;
+  --color-ink-3: #64777f;   --color-tally: #96590a;   --color-live: #0b6a4e;
+  --color-alert: #a83625;
+}
+/* Carbon — neutral graphite, cyan tally. */
+html[data-theme='carbon'] {
+  --color-ground: #0c0d10;  --color-panel: #14161a;   --color-panel-2: #1c1f25;
+  --color-rule: #292d35;    --color-ink: #eceef2;     --color-ink-2: #a2a8b4;
+  --color-ink-3: #6f7683;   --color-tally: #4cc9f0;   --color-live: #34d399;
+  --color-alert: #f87171;
+}
+html[data-theme='carbon'][data-mode='light'] {
+  --color-ground: #eceef3;  --color-panel: #ffffff;   --color-panel-2: #e0e3ea;
+  --color-rule: #c4c9d4;    --color-ink: #0b0d12;     --color-ink-2: #3e434f;
+  --color-ink-3: #626977;   --color-tally: #08607f;   --color-live: #0a6b4a;
+  --color-alert: #a53125;
+}
+/* Plum — violet ground, pink tally. */
+html[data-theme='plum'] {
+  --color-ground: #0e0a14;  --color-panel: #171021;   --color-panel-2: #201530;
+  --color-rule: #2f2145;    --color-ink: #efe9f7;     --color-ink-2: #b4a6c8;
+  --color-ink-3: #7d6f92;   --color-tally: #f472b6;   --color-live: #4ade80;
+  --color-alert: #fb7185;
+}
+html[data-theme='plum'][data-mode='light'] {
+  --color-ground: #f3edfa;  --color-panel: #ffffff;   --color-panel-2: #e8dff3;
+  --color-rule: #cfbfe4;    --color-ink: #120c1a;     --color-ink-2: #4a3a62;
+  --color-ink-3: #6c5c7e;   --color-tally: #942561;   --color-live: #0d6b48;
+  --color-alert: #a92c46;
+}
+/* Forest — near-black green, gold tally. */
+html[data-theme='forest'] {
+  --color-ground: #08110d;  --color-panel: #0e1a15;   --color-panel-2: #14241d;
+  --color-rule: #1e332a;    --color-ink: #e6efe9;     --color-ink-2: #9db3a8;
+  --color-ink-3: #6b8378;   --color-tally: #d8b44a;   --color-live: #45c48a;
+  --color-alert: #e07a5f;
+}
+html[data-theme='forest'][data-mode='light'] {
+  --color-ground: #e9f1ec;  --color-panel: #ffffff;   --color-panel-2: #dcebe1;
+  --color-rule: #bcd3c4;    --color-ink: #09120f;     --color-ink-2: #3a5148;
+  --color-ink-3: #5d736a;   --color-tally: #6d5206;   --color-live: #0b6a4e;
+  --color-alert: #a3391f;
+}
+
+/* ── geometry ───────────────────────────────────────────────────────────────
+   The app was built squared on purpose, which put "no radius" in about
+   twenty-five components. Rather than edit all of them, radius became five
+   variables: `soft` fills them in, `square` leaves them at zero, and the
+   retrofit layer further down spends them on the primitives that every screen
+   is made of. The original look therefore stays available instead of being
+   replaced. */
+/* ── the type scale ─────────────────────────────────────────────────────────
+   Five steps, and every size on a screen is one of them.
+
+   It was twenty-nine. Not twenty-nine deliberate sizes — twenty-nine arbitrary
+   ones written a component at a time, which measured on the live app as thirteen
+   different sizes painted across five screens between 9.6px and 15.2px. Adjacent
+   elements differing by three tenths of a pixel is not a hierarchy; it reads as
+   nothing having been decided, which is exactly what was reported.
+
+   In rem, without exception, and that is the other half of the bug. 131 of those
+   uses were literal `px` — `text-[10px]`, `text-[11px]`, `text-[9px]` — in an app
+   whose entire scale IS the root font size (see `data-density='tv'` below). On a
+   television every rem around them grew by a quarter and those did not, so the
+   labels shrank relative to their own rows on the one screen that most needs
+   them legible.
+
+   The steps are the ones the app already leaned on: 12px is the workhorse (370
+   of the painted elements), 10px the mono micro-label, 13px a list row. */
+:root {
+  --t-2xs: .625rem;   /* 10px — mono labels, counts, badges */
+  --t-xs: .6875rem;   /* 11px — meta beside a row */
+  --t-sm: .75rem;     /* 12px — the default */
+  --t-md: .875rem;    /* 14px — list rows, a title in a card */
+  --t-lg: 1.0625rem;  /* 17px — a heading on a page */
+  /* Two display steps above the page heading, added because five components
+     were already asking for them and getting nothing: `text-[length:var(--t-xl)]`
+     compiles to `font-size: var(--t-xl)`, an undefined variable is invalid at
+     computed-value time, and the declaration is thrown away silently — so the
+     first-run heading and the series title painted at BODY size on every screen
+     in the app. `cssTokens.test.ts` now refuses to let an undefined token ship. */
+  --t-xl: 1.3125rem;  /* 21px — the title of a screen that is only a title */
+  --t-2xl: 1.625rem;  /* 26px — a first-run heading, and nothing smaller */
+}
+/*
+ * The television scale.
+ *
+ * Measured on the set that produced the screenshots: a 1080p Android TV box
+ * reports a 960x540 CSS viewport (density 2), so the root clamps to its floor
+ * and a 10px mono label paints at 18 device pixels — a grey smudge from the
+ * sofa. Google TV asks for 14sp body text as the minimum and 12sp for captions;
+ * these steps are that, in the same five slots, so nothing has to be re-typed.
+ * The root itself only moves a little (16→18px across 1280–1920 CSS px): every
+ * pane width is a share of the screen now, so the type can grow without the
+ * three Live panes fighting for room.
+ */
+html[data-density='tv'] {
+  --t-2xs: .75rem;    /* 12px — the caption floor */
+  --t-xs: .8125rem;   /* 13px */
+  --t-sm: .875rem;    /* 14px — body */
+  --t-md: .9375rem;   /* 15px — list rows */
+  --t-lg: 1.125rem;   /* 18px — a heading */
+  /* Google TV asks for 24sp headline and 34sp display; these are that, and the
+     root grows another 12% on a 1080p set on top of them. */
+  --t-xl: 1.5rem;     /* 24px */
+  --t-2xl: 2rem;      /* 32px */
+}
+
+/* ── the television is not a terminal ───────────────────────────────────────
+   Half the interface was set in the monospace face: counts, hints, section
+   labels, every button. On a desk it reads as an instrument panel; from a sofa
+   it reads as a web page about a television rather than a television. So on the
+   TV layout the mono utility resolves to the sans face and the tracking it was
+   given is dropped — one rule, and every label, chip and button follows. What
+   monospace was actually FOR, digits that line up, is kept by `tabular-nums`,
+   which every count and clock in the app already carries. */
+html[data-ff='tv'] .font-mono { font-family: var(--font-sans); letter-spacing: normal; }
+html[data-ff='tv'] .tracking-widest, html[data-ff='tv'] .tracking-wider,
+html[data-ff='tv'] .tracking-wide { letter-spacing: .04em; }
+
+/* No scrollbars on a television. Focus IS the scroll position — the ring moves
+   and the view follows — and a grey track down every list is the single loudest
+   "this is a website" signal a set-top UI can give. Scrolling itself is untouched. */
+html[data-ff='tv'] ::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
+html[data-ff='tv'] * { scrollbar-width: none; }
+
+/*
+ * The focus ring is the cursor, and it is drawn INSIDE the thing it marks.
+ *
+ * It used to sit 2px outside with a 6px halo beyond that, and it was reported as
+ * "the highlight overflows in the body". It did. Nine pixels of ring outside the
+ * border box, inside scrollers that reserve nothing:
+ *
+ *   the header's destination tabs   `overflow-x-auto`, zero padding — no ring at all
+ *   the top row of the poster grid  rows start at y=0 of the scroller — top shorn off
+ *   the episode list                `overflow-hidden`, zero padding — clipped all round
+ *   the player's transport bar      `overflow-x-auto`, zero padding
+ *   the first and last rail tile    2px of horizontal room against a 9px ring
+ *   every filter strip              `py-1.5` is 6px — exactly where the halo ends
+ *   and `<main>` itself             `overflow-x-hidden`, so the leftmost and
+ *                                   rightmost control on EVERY page lost its ring
+ *
+ * `.pick` already had the answer and the note explaining it — an inward ring "is
+ * never clipped by the scroller's edge" — but it was one exception against thirty
+ * cases of the same hazard. So the exception becomes the rule. An inward ring
+ * cannot be clipped by anything, needs no padding reserved anywhere, and is what
+ * a television UI draws anyway: the highlight belongs ON the tile, not around it.
+ *
+ * The halo goes with it. A 6px spread shadow is a paint the compositor cannot
+ * skip, on the element the remote is moving across, which is the worst possible
+ * place to spend one.
+ */
+/* Both selectors, one rule — see the note where the duplicate used to be. */
+/*
+ * Two pixels, not three — and a fill doing the work the third pixel was doing.
+ *
+ * `--color-focus` is near-white by default (#f4f9fb, and pure #ffffff in several
+ * skins). Three pixels of that, hard-edged, inset into a 0.65rem pill on a dark
+ * glass list is not a highlight, it is a sticker: photographed on the owner's own
+ * television and sent back as "that ugly tick border on selected item".
+ *
+ * The ring is what makes the remote's position readable from three metres, so it
+ * does not go — it gets thinner, and the row it sits on gets a wash of the same
+ * colour (below). A filled row plus a fine ring reads as "the remote is here" at
+ * any distance; a heavy outline around an unfilled row reads as a box drawn on
+ * the screen. Colour is untouched — `focus-ring-probe` holds that it is the
+ * HIGHLIGHT and never the accent, because selected and highlighted have to stay
+ * different things.
+ */
+html[data-ff='tv'] :focus-visible,
+html[data-density='tv'] :focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+/*
+ * Except on anything round, where an outline is a square.
+ *
+ * Reported as "circled icons dont look circuled on TV" — and they did look
+ * circled everywhere they were checked, which is exactly why it survived. An
+ * `outline` only follows `border-radius` from Chrome 94; below that it is drawn
+ * as the element's bounding BOX. The owner's televisions run WebView 83-90, and
+ * on a television something is always focused, so the header's round buttons
+ * each carried a square ring the moment the remote reached them. Every desktop
+ * browser and the API-36 emulator are past 94, so every screenshot showed a
+ * circle.
+ *
+ * An inset `box-shadow` follows the radius on every Chromium there is. Same
+ * width, same token, drawn inside the edge the way the outline was — so the ring
+ * still reads as the HIGHLIGHT colour and `focus-ring-probe`'s rule that it is
+ * never the accent still holds. Scoped to round things only: on the square and
+ * softly-rounded controls everywhere else the outline was fine and stays.
+ */
+html[data-ff='tv'] .modern-icon:focus-visible,
+html[data-density='tv'] .modern-icon:focus-visible,
+html[data-ff='tv'] .rounded-full:focus-visible,
+html[data-density='tv'] .rounded-full:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-focus);
+}
+
+/*
+ * The picture is never ringed, even though it holds focus.
+ *
+ * `.stage` is focusable on purpose — it is the doorway that lets one press of
+ * RIGHT out of the channel list reach the player at all — and the chrome PARKS
+ * focus there as it hides, because a highlight left on a button that has just
+ * faded is a ring on nothing. Both are deliberate. What was not deliberate is
+ * that the rules above then drew a 3px ring around the whole film: every time
+ * the controls timed out, the picture got a border.
+ *
+ * Reported as "i was able to select player window, thats really bad", with a
+ * photograph of a 4K film inside an amber rectangle. Focus resting here is a
+ * resting place, not a selection, so it is not drawn as one — and nothing is
+ * lost, because `onFocus` hands focus straight on to the first real control
+ * whenever there is one to pass to.
+ */
+html[data-ff='tv'] .stage:focus-visible,
+.stage:focus-visible {
+  outline: none;
+}
+
+
+:root {
+  --r-xs: 0px; --r-sm: 0px; --r-md: 0px; --r-lg: 0px; --r-xl: 0px; --r-full: 0px;
+  /* Elevation is part of the same choice: a squared instrument panel uses rules
+     to separate things, a soft one uses shadow. */
+  --shadow-card: none;
+  --shadow-pop: 0 10px 30px -12px rgb(0 0 0 / .55);
+}
+/*
+ * Roundness as a scale, not a switch.
+ *
+ * "add more layouts like more roundness" — so `soft` became one stop of four.
+ * Only the numbers differ; the rules that spend them are written once, further
+ * down, against `html[data-ui]:not([data-ui='square'])`. `square` sets nothing
+ * and inherits the 0px defaults above, so the original instrument look stays
+ * byte-identical.
+ */
+html[data-ui='soft'] {
+  --r-xs: .3rem; --r-sm: .5rem; --r-md: .75rem; --r-lg: 1rem; --r-xl: 1.5rem; --r-full: 999px;
+}
+html[data-ui='round'] {
+  --r-xs: .45rem; --r-sm: .85rem; --r-md: 1.25rem; --r-lg: 1.75rem; --r-xl: 2.25rem; --r-full: 999px;
+}
+/*
+ * `pill` rounds controls fully and stops short of the artwork.
+ *
+ * A poster at `--r-md: 3rem` is a lozenge with the actor's head cut off, so the
+ * media radii stay where `round` had them while buttons, chips and inputs go
+ * fully round. The scale is not linear because the things it applies to are not
+ * interchangeable.
+ */
+html[data-ui='pill'] {
+  --r-xs: .5rem; --r-sm: 999px; --r-md: 1.4rem; --r-lg: 2rem; --r-xl: 2.5rem; --r-full: 999px;
+}
+html[data-ui]:not([data-ui='square']) {
+  --shadow-card: 0 1px 2px rgb(0 0 0 / .18), 0 8px 24px -18px rgb(0 0 0 / .5);
+  --shadow-pop: 0 18px 50px -20px rgb(0 0 0 / .7);
+}
+
+
+/* ══ the six specified palettes ═══════════════════════════════════════════════
+   Given as a table of name / style / colours / feel, and the STYLE column is
+   half the specification: a palette alone does not make `3D Pop` raised or
+   `Winter` translucent. So each one sets its colours AND the two variables that
+   carry its feel — `--shadow-card` and `--shadow-pop` — plus `--color-focus`,
+   because a highlight that has to be read from three metres cannot be left to
+   whatever the last palette chose.
+
+   ── backdrop-filter on Modern glass ──
+
+   `Winter` still uses alpha-only translucency (not blur). Modern shell glass
+   (`html[data-shell='modern'] .glass-pane` / `.glass-float`) DOES use
+   `backdrop-filter`, but only after theatre / cssFull stages portal to
+   `document.body` — so a fixed `.stage` is never a descendant of a blurred
+   pane. Held by `scripts/fullscreen-probe.mjs`. Do not put blur on ancestors
+   of an in-tree fullscreen stage. */
+
+/* Classic Gold — the Streamix identity, cleaner. Black, charcoal, gold. */
+html[data-theme='gold'] {
+  --color-ground: #000000;  --color-panel: #0e0e10;   --color-panel-2: #17171b;
+  --color-rule: #26262c;    --color-ink: #f4f2ee;     --color-ink-2: #a8a49b;
+  --color-ink-3: #6f6b62;   --color-tally: #e8b44a;   --color-live: #3fb98f;
+  --color-alert: #e0715f;   --color-focus: #ffffff;
+}
+html[data-theme='gold'][data-mode='light'] {
+  --color-ground: #f6f4f0;  --color-panel: #ffffff;   --color-panel-2: #e9e5dd;
+  --color-rule: #cdc7ba;    --color-ink: #14130f;     --color-ink-2: #45423a;
+  --color-ink-3: #6c675c;   --color-tally: #8a5f0c;   --color-live: #0b6a4e;
+  --color-alert: #a83625;   --color-focus: #14130f;
+}
+
+/* Neon — glowing controls. Black, purple, cyan, pink.
+   The glow is a coloured shadow rather than a filter: `filter` on a card would
+   make it a containing block, and a blurred drop-shadow is a paint the
+   compositor can cache where a filter is not. */
+html[data-theme='neon'] {
+  --color-ground: #05040a;  --color-panel: #0e0a1a;   --color-panel-2: #170f28;
+  --color-rule: #2c1f4a;    --color-ink: #f2ecff;     --color-ink-2: #b5a5d6;
+  --color-ink-3: #7c6aa0;   --color-tally: #22d3ee;   --color-live: #4ade80;
+  --color-alert: #fb5aa0;   --color-focus: #f472b6;
+}
+html[data-theme='neon'] {
+  --shadow-card: 0 0 0 1px rgb(34 211 238 / .10), 0 6px 22px -14px rgb(34 211 238 / .45);
+  --shadow-pop: 0 0 28px -6px rgb(244 114 182 / .55), 0 18px 50px -20px rgb(0 0 0 / .8);
+}
+html[data-theme='neon'][data-mode='light'] {
+  --color-ground: #f4f1fb;  --color-panel: #ffffff;   --color-panel-2: #e8e2f6;
+  --color-rule: #c9bce4;    --color-ink: #150e24;     --color-ink-2: #42375c;
+  --color-ink-3: #6b5f88;   --color-tally: #0e7490;   --color-live: #0a6b4a;
+  --color-alert: #be185d;   --color-focus: #7c3aed;
+}
+
+/* 3D Pop — raised controls, depth, soft shadows. Dark navy, blue, violet. */
+html[data-theme='pop'] {
+  --color-ground: #0a1024;  --color-panel: #121a38;   --color-panel-2: #1b2550;
+  --color-rule: #2b3768;    --color-ink: #eef1ff;     --color-ink-2: #a9b3dd;
+  --color-ink-3: #7481b5;   --color-tally: #8b7bfa;   --color-live: #34d399;
+  --color-alert: #f87171;   --color-focus: #ffffff;
+}
+html[data-theme='pop'] {
+  /* Two shadows: a tight one under the edge for the lip, a wide soft one for the
+     lift. That pair is what reads as raised rather than merely shadowed. */
+  --shadow-card: 0 1px 0 rgb(255 255 255 / .06) inset, 0 2px 0 rgb(0 0 0 / .45),
+                 0 10px 24px -14px rgb(0 0 0 / .7);
+  --shadow-pop: 0 1px 0 rgb(255 255 255 / .08) inset, 0 4px 0 rgb(0 0 0 / .5),
+                0 22px 46px -18px rgb(0 0 0 / .8);
+}
+html[data-theme='pop'][data-mode='light'] {
+  --color-ground: #eef1fa;  --color-panel: #ffffff;   --color-panel-2: #dfe5f7;
+  --color-rule: #bcc6e6;    --color-ink: #0b1024;     --color-ink-2: #3c4568;
+  --color-ink-3: #626c94;   --color-tally: #4c3fd0;   --color-live: #0a6b4a;
+  --color-alert: #a53125;   --color-focus: #0b1024;
+}
+
+/* Cinema — very dark, poster-focused. Black, graphite, deep red.
+   Flat on purpose: shadows compete with artwork, and this palette exists to let
+   a poster be the brightest thing on the screen. */
+html[data-theme='cinema'] {
+  --color-ground: #000000;  --color-panel: #0b0b0c;   --color-panel-2: #141416;
+  --color-rule: #232326;    --color-ink: #f0eeee;     --color-ink-2: #9d9a9a;
+  --color-ink-3: #676464;   --color-tally: #c8322f;   --color-live: #3fb98f;
+  --color-alert: #e0715f;   --color-focus: #ffffff;
+}
+html[data-theme='cinema'] {
+  --shadow-card: none;
+  --shadow-pop: 0 24px 60px -24px rgb(0 0 0 / .9);
+}
+html[data-theme='cinema'][data-mode='light'] {
+  --color-ground: #f2f0f0;  --color-panel: #ffffff;   --color-panel-2: #e5e2e2;
+  --color-rule: #c8c4c4;    --color-ink: #131111;     --color-ink-2: #423f3f;
+  --color-ink-3: #6a6666;   --color-tally: #9e1b19;   --color-live: #0b6a4e;
+  --color-alert: #a83625;   --color-focus: #131111;
+}
+
+/* Summer — brighter. Aqua, blue, coral, warm white. */
+html[data-theme='summer'] {
+  --color-ground: #04222b;  --color-panel: #073040;   --color-panel-2: #0b4152;
+  --color-rule: #14576c;    --color-ink: #f6f2ea;     --color-ink-2: #a9c6cf;
+  --color-ink-3: #6f97a3;   --color-tally: #ff7a5c;   --color-live: #34d399;
+  --color-alert: #fb7185;   --color-focus: #ffe9a8;
+}
+html[data-theme='summer'][data-mode='light'] {
+  --color-ground: #f3fbfd;  --color-panel: #ffffff;   --color-panel-2: #dcf0f6;
+  --color-rule: #a9d4e2;    --color-ink: #06222b;     --color-ink-2: #2f5560;
+  --color-ink-3: #567c88;   --color-tally: #c0432a;   --color-live: #0a6b4a;
+  --color-alert: #a53125;   --color-focus: #06222b;
+}
+
+/* Winter — translucent panels over the ground. Ice blue, white, midnight blue.
+   The alpha is on the panels, not a backdrop filter — see the note above. */
+html[data-theme='winter'] {
+  --color-ground: #050c1c;  --color-panel: rgb(226 242 255 / .07);
+  --color-panel-2: rgb(226 242 255 / .12);
+  --color-rule: rgb(226 242 255 / .20); --color-ink: #f2f8ff; --color-ink-2: #b6cbe3;
+  --color-ink-3: #7e97b4;   --color-tally: #7dd3fc;   --color-live: #5eead4;
+  --color-alert: #fda4af;   --color-focus: #ffffff;
+}
+html[data-theme='winter'] {
+  --shadow-card: 0 1px 0 rgb(255 255 255 / .10) inset, 0 10px 30px -18px rgb(0 0 0 / .8);
+  --shadow-pop: 0 1px 0 rgb(255 255 255 / .14) inset, 0 24px 60px -24px rgb(0 0 0 / .85);
+}
+html[data-theme='winter'][data-mode='light'] {
+  --color-ground: #eef6fd;  --color-panel: rgb(255 255 255 / .70);
+  --color-panel-2: rgb(9 30 56 / .07);
+  --color-rule: rgb(9 30 56 / .16); --color-ink: #061527; --color-ink-2: #2f4a66;
+  --color-ink-3: #5b7590;  --color-tally: #0369a1;   --color-live: #0a6b4a;
+  --color-alert: #a53125;  --color-focus: #061527;
+}
+
+/* One extra breakpoint above Tailwind's 2xl, for 1080p TV panels and very wide
+   desktops. Everything below 2xl uses the stock scale so a `phone:` variant and
+   a `max-sm:` variant can never disagree about where a phone stops. */
+@theme {
+  --breakpoint-3xl: 1920px;
+}
+
+/* ── form-factor variants ───────────────────────────────────────────────────
+   lib/formFactor.ts resolves ONE answer from viewport size, input capability and
+   the user agent, then publishes it on <html>. These variants are how components
+   read that answer without importing anything, so CSS and JS can never drift.
+
+     phone:      <640px, or anything the override forces there
+     tablet:     coarse pointer, 640px and up
+     desktop:    cursor present
+     tv:         TV user agent, D-pad, or the override
+     handheld:   phone OR tablet — most touch adjustments want both
+     panes:      wide enough for side-by-side resizable panes
+     stacked:    the inverse: one column at a time
+     touch:      no hover, so a hover-only affordance is unreachable
+     mouse:      hover is real, so lift and reveal effects are worth paying for */
+/*
+ * ── written as a plain descendant selector, and that is a compatibility fix ──
+ *
+ * Every one of these was `&:where([data-ff='tv'] *)`, which is what Tailwind's
+ * own documentation reaches for: `:where()` contributes no specificity, so a
+ * variant sorts by source order like the utility it wraps.
+ *
+ * `:where()` is Chrome/WebView 88. Below that it is an UNKNOWN pseudo-class,
+ * which makes the whole selector invalid, and an invalid selector takes its
+ * entire rule with it. Measured in the built stylesheet before this change: 96
+ * rules carried `:where([data-ff=tv] *)` — which is every `tv:` utility in the
+ * app, so the ENTIRE television type scale, spacing and sizing vanished on an
+ * older box while the phone-sized base utilities underneath stayed. Reproduced
+ * on a Google TV AVD running WebView 83.
+ *
+ * `[data-ff='tv'] &` says the same thing with CSS that has worked since 1996.
+ * What it costs is specificity: (0,2,0) instead of (0,1,0). That is safe here
+ * and not by luck — Tailwind emits variants AFTER the base utilities they
+ * modify, so `tv:text-lg` already beat `text-sm` by order; it now also beats it
+ * by weight, which is the same answer. This app's own rules are `html[...] .x`
+ * at (0,2,1) and still win. `focus-ring-probe`, `layout-probe`, `density-probe`
+ * and `shell-probe` all measure the resolved values and hold that.
+ */
+@custom-variant phone ([data-ff='phone'] &);
+@custom-variant tablet ([data-ff='tablet'] &);
+@custom-variant desktop ([data-ff='desktop'] &);
+@custom-variant tv ([data-ff='tv'] &);
+@custom-variant handheld ([data-ff='phone'] &, [data-ff='tablet'] &);
+@custom-variant panes ([data-panes='true'] &);
+@custom-variant stacked ([data-panes='false'] &);
+@custom-variant touch ([data-pointer='coarse'] &, [data-pointer='none'] &);
+@custom-variant mouse ([data-pointer='fine'] &);
+@custom-variant portrait ([data-orient='portrait'] &);
+@custom-variant landscape ([data-orient='landscape'] &);
+
+/*     soft / square: the geometry choice, for the handful of places where a
+       radius variable is not enough — a gradient direction, a border that should
+       only exist in the squared look, a shadow that replaces it in the soft one.
+       light / dark: the resolved mode, for art treatments that have to invert. */
+@custom-variant soft ([data-ui='soft'] &);
+@custom-variant square ([data-ui='square'] &);
+@custom-variant light ([data-mode='light'] &);
+@custom-variant dark ([data-mode='dark'] &);
+
+/* ── the edge ───────────────────────────────────────────────────────────────
+   Four numbers that say how far from the physical edge of the panel it is safe
+   to paint. They are zero in a desktop browser and non-zero in exactly the two
+   places this app is going next:
+
+   - Capacitor/iOS + Android 15 edge-to-edge: `env(safe-area-inset-*)` reports the
+     notch, the home indicator and the gesture bar. They only report anything at
+     all when the viewport meta carries `viewport-fit=cover`, which index.html
+     now does — without it these are silently 0 and content sits under the
+     hardware. (Chromium < 140 reports 0 regardless; @capacitor-community/safe-area
+     pads the webview to compensate, and needs no change here.)
+   - TV: overscan. Android TV, tvOS and Fire TV all reserve the outer band of the
+     panel, and the published Android TV figure is 48px horizontal / 27px vertical
+     on 1080p — 2.5% per edge, which is what `2.5vw` / `2.5vh` express at any
+     resolution.
+
+   Components spend them as `pt-[var(--edge-t)]` etc. `max()` rather than a sum:
+   a TV with a reported inset wants the LARGER of the two reservations, not both. */
+:root {
+  --edge-t: env(safe-area-inset-top, 0px);
+  --edge-r: env(safe-area-inset-right, 0px);
+  --edge-b: env(safe-area-inset-bottom, 0px);
+  --edge-l: env(safe-area-inset-left, 0px);
+  /* Height of the phone tab bar, so scrollers can clear it. */
+  --tabbar-h: 0px;
+  /* Clears the absolute overlay header on Home / film / series detail.
+
+     `--header-h` is the bar's MEASURED height, published by `Chrome` on every
+     resize. The number here is only the fallback for the first frame: it was
+     the whole answer once, and it was wrong — 3.25rem against a 56px bar on
+     every television, which put BACK fourteen pixels under the header. A
+     reservation for something whose height depends on the shell, the density
+     and the root font size cannot be written down. */
+  --shell-overlay-pad: calc(var(--edge-t) + var(--header-h, 3.75rem));
+}
+@media (min-width: 640px) {
+  :root { --shell-overlay-pad: calc(var(--edge-t) + var(--header-h, 4rem)); }
+}
+/*
+ * Overscan: gone. Only a REAL reported inset reserves anything now.
+ *
+ * The history is a slide down one hill. It began as 2.5vh/2.5vw, a CRT-era safe
+ * area that on a 960x540 box spent 24px a side framing the picture in black —
+ * "the body should be full, it's a television, even the edges are screen". That
+ * was cut to a hair of breathing room, 0.75vh/1vw, and the hair is what came
+ * back: "when I'm on the home screen it's a full screen app, and I navigate to
+ * other areas and it suddenly adds a padding — I noticed that on a web browser".
+ *
+ * Measured at 1280x720, signed in: `main` sits at x=13 with width 1254 on every
+ * route — 1vw a side, exactly this rule. It is invisible on Home only because the
+ * hero breaks out of it and bleeds to the panel edge, so leaving Home is the
+ * moment a 13px dead gutter appears down both sides of the app. One screen full
+ * bleed and the rest framed reads as a bug, and it is one.
+ *
+ * The reason it reached a browser at all is that `classify()` hard-codes `ff` to
+ * 'tv' for every device — the product is television layout only — so a desktop
+ * window inherits a television's reservations. But overscan is a property of a
+ * PANEL that crops its own edges, not of a layout, and no monitor does that.
+ *
+ * So there is no synthetic reserve. `env(safe-area-inset-*)` stays and still
+ * wins where something genuinely eats the edge — a notch, a gesture bar, Android
+ * 15 edge-to-edge — which is the only case that was ever measurable rather than
+ * inherited from a decade of CRTs.
+ */
+html[data-ff='tv'] {
+  --shell-overlay-pad: calc(var(--edge-t) + var(--header-h, 3.25rem));
+  /*
+   * The header's own inline safe margin — NOT the page-wide reserve above.
+   *
+   * "look at those top circles are not properly circle, i mean have you didnt
+   * have enough space or what". Measured at the box's own 960x540: the round
+   * icon buttons in the header are a perfect 33x33 circle, and the rightmost
+   * one's outer edge sat 13px from the panel edge — inside the ~2.5-3%
+   * overscan band every television reserves (see `--edge-t` above), so the
+   * bezel clips a slice off the circle and it reads as squared.
+   *
+   * The comment above killed the SAME-shaped fix at the PAGE level, and for a
+   * good reason: `main` framed in a dead gutter on every route but Home read as
+   * a bug, because it was one — nothing sits at that edge on most screens, so
+   * the reserve was paid for nothing. The header is different: it is the one
+   * place that always has real content pinned to x=0 and x=100%, on every
+   * route, every shell. So the margin is spent once, here, only on the header
+   * row — never on `main` — which is why this lives beside `--shell-overlay-pad`
+   * and not beside `--edge-l`/`--edge-r`.
+   */
+  --tv-safe-x: 2.75vw;
+}
+html[data-ff='phone'] { --tabbar-h: 3.25rem; }
+
+/* `height: 100%` is the right unit in a webview, where the viewport does not
+   move, and the wrong one in a mobile browser, where the URL bar collapses and
+   100% keeps measuring the tall viewport. `dvh` tracks it; the 100% line stays
+   first as the fallback for anything that does not know `dvh`. */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  /* Fixed pane widths + rem growth used to push past the shell and scroll the
+     body sideways. Clip here so a mis-sized pane cannot invent a horizontal
+     scrollbar; panes themselves clamp to the usable width. */
+  overflow-x: hidden;
+}
+@supports (height: 100dvh) {
+  html, body, #root { height: 100dvh; }
+}
+/*
+ * The soft keyboard.
+ *
+ * Reported from a television: pressing a text field opened the platform IME
+ * over the lower half of the screen and the app stayed exactly where it was,
+ * so the field being typed into — and everything under it — was behind the
+ * keys. Two halves fix it. The Android activity now asks for `adjustResize`, so
+ * the WebView itself shrinks and every `100%` above reflows. Where the window
+ * does NOT resize (edge-to-edge on Android 15, some vendor IMEs),
+ * `lib/softKeyboard.ts` measures the covered band from `visualViewport` and
+ * publishes it as `--kbd-h`; taking it off the root's height is the same reflow
+ * done by hand, and the focused field is scrolled into the part that is left.
+ */
+#root { height: calc(100% - var(--kbd-h, 0px)); }
+@supports (height: 100dvh) {
+  #root { height: calc(100dvh - var(--kbd-h, 0px)); }
+}
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* No rubber-band, no pull-to-refresh: both read as a broken app once this is
+     wrapped in Capacitor. */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Text selection is a document affordance, not an app one. Inputs keep it. */
+html[data-pointer='coarse'] body, html[data-ff='tv'] body { user-select: none; }
+input, textarea, [contenteditable] { user-select: text; }
+/* Kill the 300ms tap delay and double-tap-to-zoom on controls without taking
+   pinch-zoom away from the page, which `user-scalable=no` would. */
+button, a, [role='button'], input, select, label { touch-action: manipulation; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-ground); }
+::-webkit-scrollbar-thumb { background: var(--color-rule); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-3); }
+
+/* Focus must be unmistakable — this UI becomes a TV UI later, where there is
+   no cursor to tell you where you are. */
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+/* A near-white ring is invisible on a light ground. One rule rather than a
+   per-theme override, because it is true of every light palette. */
+html[data-mode='light'] { --color-focus: #10161a; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ── menu tiles ─────────────────────────────────────────────────────────────
+   The classic launcher's identity colours.
+
+   Deliberately NOT theme tokens. On that page the colour IS the label — people
+   find "the pink one" faster than they read "MOVIES" — so these stay put while
+   the palette changes around them, the way a platform's own app icons do. They
+   are darkened in light mode so white type keeps its contrast on them, and each
+   pairs two hues so the tile has direction rather than being a flat block. */
+.g-live    { background-image: linear-gradient(145deg, #2bbf8f 0%, #2f7ee6 100%) }
+.g-movies  { background-image: linear-gradient(145deg, #e8456d 0%, #f0a02a 100%) }
+.g-series  { background-image: linear-gradient(145deg, #8b5cf6 0%, #3ba7e8 100%) }
+.g-guide   { background-image: linear-gradient(145deg, #12967b 0%, #1f7a6a 100%) }
+.g-catchup { background-image: linear-gradient(145deg, #2f9e73 0%, #1d7f8c 100%) }
+.g-account { background-image: linear-gradient(145deg, #3a8f6f 0%, #2b6f8a 100%) }
+.g-favs    { background-image: linear-gradient(145deg, #d98324 0%, #b3541e 100%) }
+.g-search  { background-image: linear-gradient(145deg, #4f7fd4 0%, #3b5fa8 100%) }
+.g-settings{ background-image: linear-gradient(145deg, #5b6472 0%, #39404b 100%) }
+html[data-mode='light'] {
+  .skeleton {
+    background: linear-gradient(90deg, var(--color-panel-2) 0%, var(--color-rule) 50%, var(--color-panel-2) 100%);
+    background-size: 200% 100%;
+  }
+  .g-live    { background-image: linear-gradient(145deg, #1a8f6a 0%, #2058b0 100%) }
+  .g-movies  { background-image: linear-gradient(145deg, #c02452 0%, #b9701a 100%) }
+  .g-series  { background-image: linear-gradient(145deg, #6a3fd0 0%, #2076b0 100%) }
+  .g-guide   { background-image: linear-gradient(145deg, #0c7561 0%, #145d50 100%) }
+  .g-catchup { background-image: linear-gradient(145deg, #22785a 0%, #16626c 100%) }
+  .g-account { background-image: linear-gradient(145deg, #2b6d54 0%, #205468 100%) }
+}
+/* A tile is a big coloured surface, so it gets its lift from scale and shadow
+   rather than from a border colour it does not have. */
+.menu-tile {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  border-radius: var(--r-lg);
+  transition: transform .2s cubic-bezier(.2,.9,.2,1), box-shadow .2s, filter .2s;
+}
+.menu-tile:hover, .menu-tile:focus-visible { transform: translateY(-3px) scale(1.012); box-shadow: var(--shadow-pop) }
+.menu-tile:active { transform: scale(.99) }
+/* A diagonal sheen, so the flat gradient has a highlight to catch. */
+.menu-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgb(255 255 255 / .16) 0%, transparent 42%);
+  pointer-events: none;
+}
+
+/*
+ * Destinations: icon + label. Header destinations render labels in markup
+ * (always on). Elsewhere `.dest-label` stays hidden until hover/focus/current.
+ */
+.dest-label { display: none }
+.dest[aria-current='page'] .dest-label,
+.dest:hover .dest-label,
+.dest:focus-visible .dest-label,
+.dest:focus-within .dest-label { display: inline }
+
+/* ── motion ─────────────────────────────────────────────────────────────────
+   Kept short and purposeful: entrances orient the eye after a route change,
+   hovers confirm a target is interactive. Nothing loops, nothing decorates. */
+
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes rise    { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes slide-in{ from { opacity: 0; transform: translateX(-8px) } to { opacity: 1; transform: none } }
+@keyframes skeleton-pulse { 50% { opacity: .5 } }
+@keyframes pop     { from { opacity: 0; transform: scale(.97) } to { opacity: 1; transform: none } }
+
+.anim-fade  { animation: fade-in .22s ease-out both }
+.anim-rise  { animation: rise .2s cubic-bezier(.2,.8,.2,1) both }
+.anim-slide { animation: slide-in .22s cubic-bezier(.2,.8,.2,1) both }
+.anim-pop   { animation: pop .24s cubic-bezier(.2,.8,.2,1) both }
+
+/* Staggered grid entrance. Capped so a 100-item page does not take 5s to appear. */
+.stagger > * { animation: rise .26s cubic-bezier(.2,.8,.2,1) both }
+.stagger > *:nth-child(1){animation-delay:.01s}   .stagger > *:nth-child(2){animation-delay:.02s}
+.stagger > *:nth-child(3){animation-delay:.03s}   .stagger > *:nth-child(4){animation-delay:.04s}
+.stagger > *:nth-child(5){animation-delay:.05s}   .stagger > *:nth-child(6){animation-delay:.06s}
+.stagger > *:nth-child(7){animation-delay:.07s}   .stagger > *:nth-child(8){animation-delay:.08s}
+.stagger > *:nth-child(n+9){animation-delay:.09s}
+
+/*
+ * The loading placeholder, and the one animation still running on a television.
+ *
+ * It was a gradient swept across the box with `background-position`, which is a
+ * REPAINT of every placeholder every frame, for ever — and a poster grid holds
+ * forty to seventy of them while artwork is in flight. Every other animation in
+ * this file is disabled on TV by the block further down; this one was not. So on
+ * the device that kill-list exists to protect, the skeleton was the only thing
+ * burning frames, on exactly the screen reported as choppy.
+ *
+ * Opacity does the same job for nothing: the box is painted once and then faded
+ * by the compositor, and a placeholder that breathes reads as "loading" just as
+ * clearly as one that shimmers.
+ */
+.skeleton {
+  background: var(--color-panel-2);
+  /* Six breaths, not for ever. Measured on the TV emulator: seven logo
+     placeholders in the channel list's overscan rows — mounted, never on
+     screen, so never fetched — pulsed indefinitely, and the page drew 92
+     frames in seven seconds of an otherwise still screen (13 a second), every
+     one of them a main-thread frame a D-pad press had to wait behind. A
+     picture that is still not here after ten seconds is not "loading" any
+     more; the deadline in `Poster` turns it into initials soon after. */
+  animation: skeleton-pulse 1.6s ease-in-out 6;
+}
+/* A placeholder that has not been on screen yet: the same box, still. See
+   `Art` in components/Poster.tsx — it only starts to breathe once it is seen. */
+.skeleton-still { background: var(--color-panel-2); }
+
+/* ── the tile hover contract ────────────────────────────────────────────────
+   `.tile` is the ONLY scope that drives a card's hover state, and it exists
+   because `.group` could not do this job.
+
+   `group-hover:` compiles to `.group:hover &` — an ANY-ANCESTOR selector. A rail
+   section that was also a `.group` therefore lifted all twenty-four posters
+   inside it the moment the pointer touched the strip, and no amount of reading
+   the JSX shows you that: two files, each individually correct, compose into a
+   bug. A dedicated class fixes it structurally — a rail is never a `.tile`, so
+   the effect cannot bleed upward no matter what wraps it.
+
+   The frame TRANSLATES BY WHOLE PIXELS and never scales; the image inside it is
+   what zooms. Scaling a bordered box renders its 1px edge as 1.020px at a
+   fractional offset and grows the tile 1.4px sideways — past the 2px the strip
+   has — so an edge tile's border gets clipped. Integer translation keeps the
+   edge exactly 1px and the width fixed.
+
+   What scaling did NOT do, despite the obvious guess: make a border vanish. A
+   pixel read at device ratios 1, 1.25, 1.5 and 2 found the scaled border at full
+   brightness. The cause that does reproduce is clipping, and it belongs to the
+   scroller — see `--lift-room` on `.rail`. Both are held by
+   `scripts/rail-probe.mjs`. */
+/* How far a tile rises, and therefore how much room a scroller must leave for
+   it. One number, spent in two places — see `.rail` below. */
+:root { --lift: 4px; --lift-room: 12px }
+.art { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s, border-color .16s }
+.art-img { transition: transform .35s cubic-bezier(.2,.8,.2,1) }
+/* Focused/hovered tile paints above neighbours so the tally border is not
+   covered by the row above's title, and the lift does not slide under it. */
+.tile:hover, .tile:focus-visible { position: relative; z-index: 5; }
+.tile:hover .art, .tile:focus-visible .art {
+  /* Whole pixels, and no scale. A scaled 1px border becomes 1.02px spread over
+     two device rows; translation keeps the edge exactly one pixel wide. */
+  transform: translateY(calc(-1 * var(--lift)));
+  /* The highlight, not the accent — a poster the remote is on and a poster that
+     is "current" must not look alike. See `--color-focus`. */
+  border-color: var(--color-focus);
+  box-shadow: 0 12px 30px -14px rgb(0 0 0 / .85);
+}
+.tile:hover .art-img, .tile:focus-visible .art-img { transform: scale(1.06) }
+/* The label and the veil answer to the tile too, so nothing in a card needs
+   `group-hover:` and the nesting hazard has no way back in. */
+.tile-label { transition: color .14s }
+.tile:hover .tile-label, .tile:focus-visible .tile-label { color: var(--color-ink) }
+.tile-veil { opacity: 0; transition: opacity .18s }
+.tile:hover .tile-veil, .tile:focus-visible .tile-veil { opacity: 1 }
+
+.row-hover { transition: background-color .12s, box-shadow .12s }
+
+/* ── rows that can be chosen ────────────────────────────────────────────────
+   The country rail, the channel list and the settings sidebar each had their own
+   idea of "selected": a panel-2 wash with an inset shadow, a tally-tinted wash
+   with a left rule, or just amber text. Three answers to one question is what
+   reads as inconsistent colouring from the sofa. This is the one answer: a
+   tally-tinted wash, a 3px tally rule down the left edge, ink for the label and
+   tally for the title. Hover and focus share the quieter panel-2 wash so a
+   remote's ring and a cursor's hover look like the same thing. */
+.pick {
+  display: flex; align-items: center; width: 100%; text-align: left;
+  border-left: 3px solid transparent;
+  color: var(--color-ink-2);
+  transition: background-color .12s, color .12s, border-color .12s;
+}
+.pick:hover, .pick:focus-visible { background: var(--color-panel-2); color: var(--color-ink); }
+.pick.is-on {
+  background: color-mix(in srgb, var(--color-tally) 12%, transparent);
+  border-left-color: var(--color-tally);
+  color: var(--color-ink);
+}
+.pick.is-on .pick-title { color: var(--color-tally); }
+/* A row inside a `.pick` group of its own (a country's groups) is quieter: it
+   inherits the wash but not the rule, so the hierarchy reads at a glance. */
+.pick-sub.is-on { border-left-color: transparent; }
+
+/* ── one pitch for both lists on Live ───────────────────────────────────────
+   Reported as "you see, they are not the same size both lists … please make the
+   sizes consistant", and measured at the 960x540 a set-top box reports: the
+   country rail stepped 22.9px and the channel list beside it stepped 52px. Two
+   full-height lists in the same pane row, one of them at less than half the
+   other's rhythm, read as two different components rather than as two halves of
+   one screen.
+
+   The fix is a class, not two sets of paddings. `.pick-row` is the ROW — a stop
+   on the way down, whatever list it is in — and it carries the pitch, the gap
+   and the type size. Everything a row wants to be different about (a flag, a
+   logo, a chevron, an indent) it still says for itself.
+
+   ── the number is in two languages, and a test keeps them honest ──
+
+   `--row-step` and `lib/liveRows.ts`'s `ROW_STEP` are the same three numbers.
+   They have to be: the channel list is virtualised, and a virtualiser positions
+   rows by pixel offset — growing a row in CSS alone leaves every row at the
+   wrong offset and they overlap (docs/11-ui-rewrite.md §10.4, and the rem grid
+   gap `useGridMetrics` records). `liveRows.test.ts` reads this file and fails
+   when the two drift apart.
+
+   In px, deliberately, for the other half of that trap: every other size in this
+   app is in rem, and a rem moves the instant the root font size does — which the
+   TV density does, clamping to 13px on a 960x540 box. A pitch the virtualiser
+   holds as a number cannot be allowed to move underneath it.
+
+   The three values mirror `rowStep()` exactly, in the same order and by the same
+   test: a television first, then a coarse pointer, then a cursor. See
+   `ROW_STEP` for why they are 44/48/40 now ("too much space for text") and what
+   was measured before they came down from 52/56/48. */
+:root { --row-step: 40px; }
+html[data-pointer='coarse'], html[data-pointer='none'] { --row-step: 48px; }
+/* Last, and on purpose: a TV that claims a coarse pointer — several TV Chromium
+   builds do — is still a TV, and `rowStep()` asks the same question in the same
+   order. */
+html[data-ff='tv'] { --row-step: 44px; }
+
+.pick-row {
+  /* `min-height` rather than `height`: the channel rows are `h-full` inside a
+     virtual row that is already exactly this tall, and the rail's rows have to
+     reach the same pitch from content that is one line shorter. Every row
+     carries its own hairline INSIDE this height (border-box), so a separator is
+     never a pixel added to one list and not the other. */
+  min-height: var(--row-step);
+  gap: .625rem;
+  font-size: var(--t-md);
+  line-height: 1.25;
+}
+/* The side rail is drawn whole — every package a line has, 217 on one measured
+   line and 829 on another — where the channel lists beside it are virtualised.
+   "render only what you are seeing": a rail row out of view is skipped until it
+   scrolls in. It stays in the page, so the remote can still land on it and
+   focus memory still finds it, and its size is held at exactly one step so the
+   scrollbar and spatial navigation measure what they always measured. A
+   WebView too old for `content-visibility` simply draws them all, as before. */
+[data-nav-group='countries'] .pick-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--row-step);
+}
+/* A logo is rem and the step is px, so the logo is capped by the step.
+   `Poster` draws a channel logo at 2.5rem — 32.5px on the box, where it fits —
+   and 40px under a 16px root and 45px under 18px, where a 44px row cannot hold
+   it and the virtualiser clips whatever spills. The cap is the step less 8px:
+   four pixels above and below, which is the 2px inward focus ring plus two of
+   air, so the highlight never draws across the artwork. */
+.pick-row .art {
+  width: min(2.5rem, calc(var(--row-step) - 8px));
+  height: min(2.5rem, calc(var(--row-step) - 8px));
+}
+/* Nested groups are the same ROW at a quieter weight. They were 2px shorter than
+   the country above them and a step smaller in type, which is the same
+   inconsistency as the one between the two lists, one level down. The indent and
+   the type colour are what say "inside"; the rhythm should not. */
+.pick-row.pick-sub { font-size: var(--t-sm); }
+
+/* The rail's rows are a flex column so their MARGINS CANNOT COLLAPSE.
+
+   Measured once, and it is why two lists disagreed by 2px after everything
+   above: the channel list's rows each sit in their own absolutely positioned
+   box, so an inset above and below each row is really there, while the rail's
+   rows are plain siblings in normal flow, where adjacent vertical margins
+   collapse to the larger of the two. The modern shell's 0.15rem row insets are
+   gone (the rows run edge to edge now), so nothing here has a margin today —
+   and this stays, because the day one comes back the two lists part company
+   again with nothing in either stylesheet to say why.
+
+   `flex: none` keeps the rows at their own height inside a scroller that is
+   shorter than they are — the default `flex-shrink: 1` would squeeze a rail of
+   two hundred countries into one screenful.
+
+   On `.rail-rows`, the scroller, and no longer on `[data-nav-group='countries']`
+   itself: the group is now a column of TWO things — the search field and this
+   scroller under it (see `LiveSidebar`) — and `flex: none` on the scroller would
+   undo the `flex-1 min-h-0` that makes it one. */
+.rail-rows { display: flex; flex-direction: column; }
+.rail-rows > * { flex: none; }
+
+/* ── the rails are compact ──────────────────────────────────────────────────
+   "The categories in the channel packages, the countries area … there is so
+   much space between. On PC it looks good, but even there make it compact,
+   we are wasting so much space." Measured at 960x540: at the channel pitch
+   the Sports rail showed ten sports and the country rail eleven countries.
+
+   A rail row carries ONE line — a country, a package, a sport, a category —
+   where a channel row carries two (the name, and NOW under it), so the rails
+   get a pitch of their own and the channel list keeps `--row-step`. Nothing
+   measures a rail row by number: the rails are drawn whole, not virtualised,
+   which is why this can be CSS alone (the channel list could not).
+
+   Every rail is `.rail-rows` — Live, Movies, Series, Catch-up (`LiveSidebar`)
+   and Sports (`SportsRail`) — so one rule
+   changes all of them together. A finger keeps the full step: 44px is the
+   floor the touch block below exists for. A television last, as above. */
+:root { --rail-step: 32px; }
+html[data-pointer='coarse'], html[data-pointer='none'] { --rail-step: var(--row-step); }
+html[data-ff='tv'] { --rail-step: 34px; }
+.rail-rows .pick-row { min-height: var(--rail-step); }
+[data-nav-group='countries'] .rail-rows .pick-row { contain-intrinsic-size: auto var(--rail-step); }
+
+/* ── the retrofit layer ─────────────────────────────────────────────────────
+   Where the radius variables get spent.
+
+   Blunt on purpose: `button`, `input` and `img` are what this interface is made
+   of, and rounding them at the element level is what turns twenty-five squared
+   components soft without touching one of them. Two escape hatches keep it
+   honest — `.no-round` for things that must stay square at any setting (a 1px
+   splitter, a progress track, a full-height tab), and `.pill` for the things
+   that should be fully round rather than merely soft.
+
+   Under `data-ui='square'` every variable is 0px, so these rules are inert and
+   the original look is byte-identical. */
+html[data-ui]:not([data-ui='square']) {
+  /*
+   * `a` is in this list because a link styled as a button is a button.
+   *
+   * Twice now the report has been the same shape: three identical targets in the
+   * header where one was an `<a>` and came out a hard square, and a bordered
+   * "Packages" row sitting directly under bordered `<button>` rows with different
+   * corners. A tag is a routing decision, not a design one. Rounding every anchor
+   * is safe precisely because a radius paints nothing on an element with no
+   * border and no background of its own, which is every ordinary text link.
+   */
+  a, button, [role='button'], input, select, textarea, kbd { border-radius: var(--r-sm) }
+  /* Capped at the poster radius: under `pill` the control radius is 999px, and a
+     picture at that is an oval — the film itself, cut into an ellipse. */
+  img, video { border-radius: min(var(--r-sm), var(--r-md)) }
+  .card, aside, .sheet-panel { border-radius: var(--r-md) }
+  .chip { border-radius: var(--r-full) }
+  /* A poster is the largest single object on most screens, so it carries the
+     largest radius — this is the corner people actually judge the app by. */
+  .art { border-radius: var(--r-md) }
+  .hero-card { border-radius: var(--r-lg) }
+  /* The video surface. Same radius as a poster, because they are the same kind of
+     object — the largest picture on the screen — and two different corners on the
+     two biggest surfaces is the inconsistency people actually notice. */
+  .stage { border-radius: var(--r-md) }
+}
+/*
+ * A thumbnail is not a poster, and the same radius on both is wrong.
+ *
+ * `--r-md` is 12px, chosen for the 180px poster the app is judged by. The series
+ * rail draws its covers 28px wide and 42 tall, where 12px eats the corners of
+ * the artwork and reads as a circle rather than as a DVD case — reported exactly
+ * that way: "why circled, rounded are enough". So a small piece of artwork
+ * spends the small end of the same scale instead of opting out of it: still one
+ * setting, still zero under `data-ui='square'`, just the radius that suits the
+ * box. `html[data-ui]` for specificity, the same trick `.pill` needs below.
+ */
+html[data-ui] .art-thumb { border-radius: var(--r-xs) }
+/*
+ * `no-round` applies to the element, NEVER to its descendants.
+ *
+ * It was written with descendant selectors so a squared container could flatten
+ * the controls inside it, and that leaked badly: marking the player surface and
+ * the guide's channel cells as bands stripped the radius from every channel logo
+ * and every button inside them — 38 square corners that the style audit caught
+ * and that looked, from outside, exactly like the bug being fixed. A container
+ * does not get to decide the shape of things it merely contains.
+ */
+.no-round { border-radius: 0 !important }
+/*
+ * `html[data-ui]` is here for specificity, not for scoping.
+ *
+ * The retrofit rule above compiles to `html[data-ui='soft'] button`, which is one
+ * class plus one element — and a bare `.pill` is one class, so it LOST. Every
+ * pill-shaped button in the app was quietly rendering at the 8px button radius
+ * instead of fully round, which is invisible until two of them sit side by side.
+ * The attribute selector makes this two classes' worth and settles it without
+ * reaching for `!important`.
+ *
+ * ── and then the roundness scale nearly reintroduced it ──
+ *
+ * Widening the retrofit rule to `html[data-ui]:not([data-ui='square'])` — so one
+ * rule set can serve `soft`, `round` and `pill` — raised ITS specificity to
+ * (0,2,1), because `:not()` counts as its argument. That is above the (0,2,0)
+ * this rule had, so the same silent regression was one edit away. The attribute
+ * is repeated to make this (0,3,1). Ugly, and cheaper than the alternative: the
+ * failure is invisible in isolation and nobody would have looked.
+ */
+html[data-ui][data-ui] .pill { border-radius: var(--r-full) }
+
+/*
+ * The last square corners, and why each one was square.
+ *
+ * "lock the square corners … the badges … the progress bars … even the
+ * highlighted areas are square, but I didn't select the square layout". Counted
+ * rather than eyeballed (`scripts/corner-audit.mjs`, every screen, every control
+ * focused in turn): 47 shapes, most of them opted out on purpose at some point.
+ *
+ *  - List rows were edge-to-edge bands (`no-round`), so everything drawn ON a
+ *    row — the remote's highlight, the playing episode, the chosen country — was
+ *    a square box inside a rounded pane. On a television the highlight is the
+ *    shape looked at most, so the rows follow the layout now.
+ *  - Loading placeholders had no radius at all: a grid arrived as square boxes
+ *    and turned round when the posters landed ("while it was loading I was
+ *    seeing squares and then rounds").
+ *  - Small bordered badges — genre, year, rating, cast — are `span`s, which the
+ *    retrofit layer above never covered.
+ *
+ * Rows take `--r-row` rather than `--r-sm`: under `pill` the control radius is
+ * 999px, and a 34px list row at that is a lozenge with its separator bent into a
+ * smile. Square keeps every one of these at 0px.
+ */
+:root { --r-row: 0px }
+html[data-ui='soft'] { --r-row: .5rem }
+html[data-ui='round'] { --r-row: .75rem }
+html[data-ui='pill'] { --r-row: .9rem }
+/* `!important` because rows sit under three generations of radius rules — the
+   retrofit's `button`, the modern shell's `button:not(…):not(…)` at (0,4,2), and
+   `no-round` on anything that still carries it — and a row that loses to any
+   one of them is the bug this block exists to close. */
+html[data-ui]:not([data-ui='square']) .pick,
+html[data-ui]:not([data-ui='square']) .pick-row,
+html[data-ui]:not([data-ui='square']) .row-hover,
+html[data-ui]:not([data-ui='square']) .r-row { border-radius: var(--r-row) !important }
+html[data-ui]:not([data-ui='square']) .skeleton:not(.art),
+html[data-ui]:not([data-ui='square']) .skeleton-still:not(.art) { border-radius: var(--r-row) }
+/* A poster-shaped placeholder is the poster's shape, so it lands at the same corner. */
+html[data-ui]:not([data-ui='square']) .skeleton[class*='aspect-']:not(.art) { border-radius: var(--r-md) }
+/* A bordered span is a badge. `rounded-*` utilities lose to unlayered rules like
+   this one, so an element that asked for its own radius is left alone. */
+html[data-ui]:not([data-ui='square']) span.border:not([class*='rounded']):not(.pill):not(.chip),
+html[data-ui]:not([data-ui='square']) .badge { border-radius: var(--r-xs) }
+
+/* ── primitives ─────────────────────────────────────────────────────────────
+   Named so a screen is assembled from four things rather than from forty
+   repeated class strings, and so the soft/square switch has one definition to
+   change instead of forty. */
+.card {
+  background: var(--color-panel);
+  border: 1px solid var(--color-rule);
+  box-shadow: var(--shadow-card);
+  transition: border-color .16s, background-color .16s, box-shadow .16s, transform .16s;
+}
+.card-hover:hover, .card-hover:focus-visible {
+  border-color: var(--color-focus);
+  background: var(--color-panel-2);
+}
+html[data-ui]:not([data-ui='square']) .card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop) }
+
+.chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  border: 1px solid var(--color-rule);
+  padding: .25rem .6rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-2xs);
+  color: var(--color-ink-2);
+  white-space: nowrap;
+  transition: border-color .14s, color .14s, background-color .14s;
+}
+.chip:hover { border-color: var(--color-ink-3); color: var(--color-ink) }
+.chip[aria-pressed='true'], .chip.is-on {
+  border-color: var(--color-tally);
+  background: color-mix(in srgb, var(--color-tally) 14%, transparent);
+  color: var(--color-tally);
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  border: 1px solid var(--color-rule);
+  background: color-mix(in srgb, var(--color-panel) 70%, transparent);
+  padding: .5rem .9rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  letter-spacing: .08em;
+  color: var(--color-ink-2);
+  transition: border-color .14s, color .14s, background-color .14s, transform .1s;
+}
+.btn:hover { border-color: var(--color-tally); color: var(--color-tally) }
+html[data-ff='tv'] .btn {
+  background: var(--color-panel-2);
+  color: var(--color-ink);
+  padding: .55rem 1.1rem;
+  font-size: var(--t-sm);
+  letter-spacing: 0;
+}
+.btn:active { transform: scale(.97) }
+.btn-primary {
+  border-color: var(--color-tally);
+  background: var(--color-tally);
+  color: var(--color-ground);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  color: var(--color-ground);
+  background: color-mix(in srgb, var(--color-tally) 85%, var(--color-ink));
+}
+
+/* ── motion ─────────────────────────────────────────────────────────────────
+   Added for the hero and the rails. Still nothing that loops for decoration:
+   the only repeating animation in the app is the skeleton shimmer, and the only
+   long one is the hero's slow drift, which exists to make a still photograph
+   read as a live surface rather than a stuck screen. */
+@keyframes hero-drift { from { transform: scale(1.04) translate3d(0,0,0) } to { transform: scale(1.12) translate3d(-1.2%, -1%, 0) } }
+@keyframes slide-up   { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+@keyframes slide-left { from { opacity: 0; transform: translateX(18px) } to { opacity: 1; transform: none } }
+@keyframes scale-in   { from { opacity: 0; transform: scale(.94) } to { opacity: 1; transform: none } }
+@keyframes sweep      { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+
+.anim-up    { animation: slide-up .42s cubic-bezier(.2,.9,.2,1) both }
+.anim-left  { animation: slide-left .42s cubic-bezier(.2,.9,.2,1) both }
+.anim-scale { animation: scale-in .3s cubic-bezier(.2,.9,.2,1) both }
+/* The backdrop drifts for the whole time a slide is on screen, then the next
+   slide's copy of the element starts over. Paused when the carousel is held. */
+.anim-drift { animation: hero-drift 9s linear both }
+.hero-held .anim-drift { animation-play-state: paused }
+
+/* Six steps of stagger, spent on hero copy and menu tiles. */
+.step > *   { animation: slide-up .42s cubic-bezier(.2,.9,.2,1) both }
+.step > *:nth-child(1){animation-delay:.02s} .step > *:nth-child(2){animation-delay:.07s}
+.step > *:nth-child(3){animation-delay:.12s} .step > *:nth-child(4){animation-delay:.17s}
+.step > *:nth-child(5){animation-delay:.22s} .step > *:nth-child(n+6){animation-delay:.27s}
+
+/* The auto-advance clock, drawn rather than described. Re-keyed per slide, so
+   the fill restarts with the timer it represents. */
+.sweep { transform-origin: left center; animation: sweep linear both }
+
+/* ── rails ──────────────────────────────────────────────────────────────────
+   A home page is a stack of horizontal strips, and the strip is where the two
+   input models diverge most: a thumb flicks and wants to land on a tile edge, a
+   cursor drags a scrollbar, a remote moves focus and expects the view to follow.
+   Proximity snapping rather than mandatory: mandatory snap fights a fast flick
+   through twenty tiles and makes long rails feel sticky. */
+.rail {
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: .25rem;
+  /* The room the hover lift needs, taken back out of the layout so the strip
+     occupies the same space it always did. Horizontal padding matters for the
+     same reason on a focus ring. */
+  padding: var(--lift-room) 2px;
+  margin: calc(-1 * var(--lift-room)) 0;
+  /*
+     No scrollbar. A carousel is driven by its arrows and by swiping; a visible
+     horizontal bar under every strip is eleven scrollbars on one page, and it
+     reads as a document rather than as an app. The bar is hidden, not the
+     scrolling: wheel, trackpad, touch and keyboard all still work.
+  */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.rail > * { scroll-snap-align: start }
+.rail::-webkit-scrollbar { display: none; width: 0; height: 0 }
+
+/*
+ * A shelf arriving.
+ *
+ * "there are no animations in home page like things come up and stuff" — and
+ * there were none, because the home page is a stack of shelves that each mount
+ * whenever their own query lands, so the page assembled by snapping rows into
+ * existence one at a time. This is the entrance for one SHELF: one element, one
+ * transform and one opacity, on the compositor. Never per tile — a package rail
+ * holds twenty-four posters and the page holds a hundred rails, and animating
+ * those individually is the thing `html[data-ff='tv']` below exists to switch
+ * off. See `enterDelay` in components/Rail.tsx for the stagger.
+ *
+ * TWO details are load-bearing and both were paid for elsewhere:
+ *
+ * `from { opacity: .01 }`, not `0`. `spatialNav.visible()` refuses anything whose
+ * computed opacity is exactly `0` — once as a string test, once through
+ * `checkVisibility({ opacityProperty: true })` — so a shelf held at zero by the
+ * BACKWARDS half of a fill is a shelf a D-pad cannot enter for as long as the
+ * hold lasts. That is the bug written up in `focusFirst`, where an `anim-fade`
+ * section still at `opacity: 0` 481ms after mount sent arrival focus into the
+ * rail underneath it. One percent is invisible at the start of a 220ms fade and
+ * is not zero to either test, so a DOWN press 200ms after arrival lands on the
+ * shelf that is easing in rather than skipping over it.
+ *
+ * `backwards`, not `both`. The end of this animation IS the element's own resting
+ * style, so `forwards` buys nothing and costs something: a filled `transform`
+ * makes the section a containing block for `position: fixed` for ever, and the
+ * hold menu a poster opens (`HoldMenu`, `fixed inset-0`) lives inside this
+ * subtree. With `backwards` the transform is gone the moment the entrance ends.
+ */
+@keyframes shelf-in { from { opacity: .01; transform: translateY(14px) } to { opacity: 1; transform: none } }
+.anim-shelf { animation: shelf-in .22s cubic-bezier(.2,.8,.2,1) backwards }
+
+/* The featured band. A backdrop settling out of a slight over-scale is the one
+   piece of decoration in this app that earns its place: it marks the moment the
+   real artwork replaced the blurred stand-in, which otherwise looks like a
+   rendering glitch. It runs once per slide and never loops. */
+@keyframes hero-in { from { opacity: 0; transform: scale(1.06) } to { opacity: 1; transform: none } }
+.anim-hero { animation: hero-in .6s cubic-bezier(.2,.8,.2,1) both }
+
+
+input[type='range'] { accent-color: var(--color-tally) }
+
+/*
+ * A set-top box is a slow computer.
+ *
+ * The hero's nine-second drift, the staggered grid entrance and the lifted
+ * shadows are all compositor work, and on the ARM boxes this app actually runs
+ * on they are what makes a page feel a beat behind the remote. On the television
+ * layout the long-running and per-tile animations are off; the short route fade
+ * stays, because it is one element for a fifth of a second and it is what tells
+ * the eye that a press did something.
+ *
+ * `.anim-shelf` is deliberately NOT on this list, and it is worth saying why,
+ * because the list above is what made the home page motionless on the one device
+ * that matters: it kills `.stagger > *` (a hundred posters) and `.step > *` and
+ * the nine-second drift, which between them were every animation the showcase
+ * had. A shelf entrance is on the other side of that line — one element per
+ * shelf, five of them in a burst, 220ms and done — so it is the same class of
+ * thing as the route fade, and it is the only reason this page moves at all on a
+ * television.
+ */
+html[data-ff='tv'] {
+  .anim-drift, .sweep, .stagger > *, .step > *, .anim-hero { animation: none !important }
+  .art, .art-img { transition: none }
+  .tile:hover .art-img, .tile:focus-visible .art-img { transform: none }
+  .menu-tile:hover, .menu-tile:focus-visible { transform: none }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade, .anim-rise, .anim-slide, .anim-pop, .anim-hero, .anim-up, .anim-left,
+  .anim-scale, .anim-shelf, .anim-drift, .sweep, .stagger > *, .step > *,
+  .skeleton { animation: none !important }
+  .card, .chip, .btn, .card-hover:hover { transition: none !important; transform: none !important }
+  .art, .art-img, .tile-label, .row-hover { transition: none !important }
+  .tile:hover .art, .tile:hover .art-img { transform: none !important }
+}
+
+/* ── player chrome primitives ───────────────────────────────────────────────
+   The settings drawer has five tabs and a lot of rows; naming these keeps the
+   component readable instead of repeating the same eight classes forty times. */
+.menu-label {
+  padding: .5rem .75rem .25rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-2xs);
+  letter-spacing: .1em;
+  color: var(--color-ink-3);
+}
+.menu-row {
+  display: flex; width: 100%; align-items: center; gap: .5rem;
+  padding: .375rem .75rem;
+  text-align: left; font-size: var(--t-sm);
+  color: var(--color-ink-2);
+  transition: background-color .12s, color .12s;
+}
+.menu-row:hover { background: var(--color-panel-2); color: var(--color-ink); }
+.menu-row.is-on { color: var(--color-tally); }
+.menu-row.is-on:hover { color: var(--color-tally); }
+.dot { height: .25rem; width: .25rem; flex-shrink: 0; background: transparent; }
+.menu-row.is-on .dot { background: var(--color-tally); }
+.ctl { padding: .375rem; color: var(--color-ink); transition: color .12s; }
+.ctl:hover { color: var(--color-tally); }
+
+/*
+ * The video surface is always dark, whatever the app is.
+ *
+ * Reported as "the white mode subtitles and so on" — and it was worse than the
+ * subtitles. Everything the player draws sits on top of a picture: the caption
+ * box, the control bar, the clock, the settings panel. All of it was written with
+ * the app's own text tokens on a `bg-black/70` scrim, which is correct in dark
+ * mode and inverted in light mode — `--color-ink` becomes #0c161b there, so the
+ * captions were near-black type on a black box, and the transport controls with
+ * them. The screenshot of a football match with grey-on-grey subtitles is exactly
+ * that.
+ *
+ * The fix belongs at the surface rather than on forty elements. A picture is not
+ * a themed surface: it is whatever the broadcaster sent, usually bright and
+ * always unpredictable, so the only safe treatment over it is light type on a
+ * dark scrim — which is what every player on every platform does, in every theme
+ * anyone has ever shipped. Re-declaring the ink tokens on `.stage` makes that
+ * true for every descendant at once, including components written later by
+ * someone who never read this comment.
+ *
+ * Tally and alert keep their meaning (they are already chosen for contrast on
+ * dark) but are pinned to their dark-mode values so a light theme's darkened
+ * accents — picked to sit on white — do not end up on video.
+ */
+.stage {
+  --color-ink: #f4f7f8;
+  --color-ink-2: #cbd5d9;
+  --color-ink-3: #9fb0b7;
+  --color-rule: #3a464c;
+  --color-panel: #12181c;
+  --color-panel-2: #1b2429;
+  --color-ground: #0b0f11;
+  color: var(--color-ink);
+}
+
+/* ── the hole the native picture comes through ──────────────────────────────
+ *
+ * On Android the APK does not decode inside the WebView. `StreamixPlayerPlugin`
+ * puts a libVLC SurfaceView BEHIND the page and the page is made transparent, so
+ * hardware HEVC, AC-3 and MKV play at all — and everything the page draws
+ * (controls, subtitles, the info panel) still composites on top, because it is
+ * in front.
+ *
+ * Except that the page was never transparent where it matters. `.stage` is
+ * `bg-black` and the `<video>` element inside it is `bg-black`, and `body` paints
+ * the app's ground behind both: three opaque layers over the one rectangle the
+ * surface occupies. The native engine played, the audio came out, and the
+ * picture was behind a black card — reported as "the movies again hear audio but
+ * no video, maybe some codecs or player issue?". It is neither: the codec was
+ * fine and the frames were arriving. Live TV looked fine throughout because
+ * H.264/AAC stays in the WebView, where the `<video>` element is the picture.
+ *
+ * So while the native engine owns the picture, the chain over that rectangle is
+ * cleared: the element, the stage, every ancestor with a background of its own
+ * (`nv-clear`, tagged by the player from the live rect — see VideoPlayer.tsx),
+ * and the document itself. Then the app's ground is painted BACK everywhere
+ * except that rectangle, as one shadow cast outward from it: an outer box-shadow
+ * is never drawn beneath its own box, which is exactly a rectangular hole and
+ * needs no clip-path.
+ *
+ * Verified rather than reasoned about — `scripts/native-hole-probe.mjs`
+ * screenshots the page on a transparent canvas and asserts that the alpha inside
+ * the rectangle is zero and outside it is opaque, which is precisely what the
+ * Android compositor will see.
+ */
+html[data-native-video='on'],
+html[data-native-video='on'] body { background: transparent; }
+/*
+ * Everything the ancestor paints, not only its colour.
+ *
+ * This cleared `background-color` alone, which was the whole answer while the
+ * panes were flat. Under the modern shell they are glass: `.glass-float` carries
+ * a colour AND `--glass-sheen` — white falling from the top of the pane — AND an
+ * inset rim. The colour went, the sheen stayed, and the sheen is over the
+ * picture. Measured on the Series desk at 960×540 with the hole open: alpha 81
+ * at the top of the rectangle falling to 18 at the bottom, which is the native
+ * film coming up under about a third of a white page.
+ *
+ * `box-shadow` for the same reason: `--glass-rim` is two INSET shadows, and an
+ * inset shadow paints inside the box it belongs to — over the hole.
+ *
+ * Nothing is lost that was not already going: this only ever tags ancestors of
+ * the picture, and they are surrendering their background to the surface for
+ * exactly as long as the surface has the picture.
+ */
+html[data-native-video='on'] .nv-clear {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+/*
+ * And the escape hatch for what `.nv-clear` structurally cannot reach.
+ *
+ * `.nv-clear` is tagged by walking up from the `<video>` element and clearing
+ * every ANCESTOR whose computed BACKGROUND-COLOUR is opaque. Two words in that
+ * sentence are load-bearing, and Series broke on both: the series art is a
+ * `background-image`, which a `background-color: transparent` does not touch,
+ * and it is a SIBLING of the picture column rather than an ancestor of the
+ * video, so the walk never sees it at all. Under it sat a ground scrim and the
+ * episode list, painting over the same rectangle — "enkel audio in de
+ * achtergrond … vermoedelijk probleem van Z order". It was not a z-order bug:
+ * libVLC was drawing the film behind a page that had three of its own layers
+ * over the hole.
+ *
+ * So `.nv-cover` is for decoration that covers the picture without owning it:
+ * it is not cleared, it is GONE while the native surface has the picture. Only
+ * for elements that carry nothing but scenery — everything tagged with it is
+ * `aria-hidden` already, so there is nothing to lose and nothing to read.
+ *
+ * `scripts/native-hole-probe.mjs` holds the case: a sibling painting a
+ * background-image across the rectangle, with and without this class.
+ */
+html[data-native-video='on'] .nv-cover { display: none !important; }
+/*
+ * Except scenery that can have the picture cut out of it instead — Sports TV's
+ * photograph (`SportShot` in routes/Live.tsx), which was simply gone on the box
+ * whenever a channel played: "we don't see any background images".
+ *
+ * The hole is the rectangle VideoPlayer publishes for the surface, moved into
+ * this layer's own coordinates (`--at-*`, written by the layer). `evenodd` makes
+ * the second ring of the polygon a hole in the first. Every variable falls back
+ * to a hole the size of the screen, so a commit where one is not yet written
+ * paints nothing — the old `display: none` — and never a photograph over the
+ * film. And only where the polygon is understood at all: a WebView that drops
+ * the declaration would draw the photograph whole, over the picture.
+ */
+@supports (clip-path: polygon(evenodd, 0 0, 1px 0, 1px 1px)) {
+  html[data-native-video='on'] .nv-cover.nv-holed {
+    display: block !important;
+    --hx: calc(var(--nv-x, -100vw) - var(--at-x, 0px));
+    --hy: calc(var(--nv-y, -100vh) - var(--at-y, 0px));
+    --hr: calc(var(--hx) + var(--nv-w, 300vw));
+    --hb: calc(var(--hy) + var(--nv-h, 300vh));
+    clip-path: polygon(evenodd,
+      0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+      var(--hx) var(--hy), var(--hr) var(--hy), var(--hr) var(--hb), var(--hx) var(--hb), var(--hx) var(--hy));
+  }
+}
+/*
+ * `aspect-ratio` is Chrome/WebView 88, and the picture has no other height.
+ *
+ * `.stage` ships as `aspect-video w-full`: its width comes from the column and
+ * its HEIGHT comes from the ratio. On a box older than 88 the declaration is
+ * ignored, the element computes to zero pixels tall, and the player is invisible
+ * with no error anywhere — the channel opens, the audio plays, and there is
+ * nothing on screen. Measured on a Google TV AVD running WebView 83.
+ *
+ * The padding box is the old way to say this and it is safe HERE specifically:
+ * everything inside `.stage` — the video, the glow, the centre cluster, the
+ * control bar — is absolutely positioned against it, so collapsing the content
+ * box to zero moves nothing.
+ *
+ * Deliberately only this element. The other ratios in the app (`.art` frames,
+ * the launcher tiles) hold children in normal flow, where the same trick would
+ * collapse them; without `aspect-ratio` those simply take their height from
+ * their content, which is a slightly different shape rather than a broken one.
+ */
+@supports not (aspect-ratio: 16 / 9) {
+  .stage { height: 0; padding-bottom: 56.25%; }
+  /* Except when it is not a ratio box at all: fullscreen and theatre replace the
+     ratio with a real height, and a padding box there would be 56.25% of the
+     screen's WIDTH stacked under a full-height element. */
+  .stage.h-full { height: 100%; padding-bottom: 0; }
+}
+html[data-native-video='on'] .stage,
+html[data-native-video='on'] .stage > video { background-color: transparent !important; }
+html[data-native-video='on'] body::before {
+  content: '';
+  position: fixed;
+  /* Behind every element in the page and in front of nothing else: the document
+     background is transparent above, so this IS the app's ground. */
+  z-index: -1;
+  pointer-events: none;
+  left: var(--nv-x, 0px);
+  top: var(--nv-y, 0px);
+  width: var(--nv-w, 0px);
+  height: var(--nv-h, 0px);
+  border-radius: var(--nv-r, 0px);
+  box-shadow: 0 0 0 100vmax var(--color-ground);
+}
+
+/*
+ * The plate's own hole, over the native picture.
+ *
+ * `body::before` makes its hole by casting the ground OUTWARD from the
+ * rectangle with a 100vmax box-shadow, which cannot carry an image. A photo
+ * needs a real cut-out, so the layer is clipped to everything-except-the-rect
+ * with an even-odd polygon built from the same four variables the surface is
+ * positioned by — one measurement, so the picture and the hole in front of it
+ * cannot disagree.
+ *
+ * Guarded, and the guard is the safe half: on an engine without `evenodd` the
+ * layer is simply not drawn while the hole is open, which is exactly what the
+ * app did before any of this — a flat ground and a visible picture. A photo is
+ * worth having; it is not worth a black rectangle where the film should be.
+ */
+html[data-native-video='on'] .modern-plate { display: none; }
+
+@supports (clip-path: polygon(evenodd, 0 0, 1px 0, 1px 1px, 0 1px)) {
+  html[data-native-video='on'] .modern-plate {
+    display: block;
+    clip-path: polygon(
+      evenodd,
+      0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+      var(--nv-x, 0px) var(--nv-y, 0px),
+      calc(var(--nv-x, 0px) + var(--nv-w, 0px)) var(--nv-y, 0px),
+      calc(var(--nv-x, 0px) + var(--nv-w, 0px)) calc(var(--nv-y, 0px) + var(--nv-h, 0px)),
+      var(--nv-x, 0px) calc(var(--nv-y, 0px) + var(--nv-h, 0px)),
+      var(--nv-x, 0px) var(--nv-y, 0px)
+    );
+  }
+}
+
+/* Native cue rendering, sized to the surface rather than the browser default.
+   External subtitle files are shown by the browser's own renderer, which is what
+   makes them work identically on every transport.
+
+   `::cue` is styled from the VIDEO element, which is inside `.stage` — but cues
+   live in a shadow tree that does not inherit custom properties reliably across
+   engines, so the colour is written literally here rather than through a token.
+   A subtitle is the one piece of text in the app that must be readable when
+   everything else has gone wrong. */
+video::cue {
+  background: transparent;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.9em;
+  line-height: 1.3;
+  /* No plate — shadow alone has to hold white-on-white (sky, snow, captions). */
+  text-shadow:
+    0 0 2px rgb(0 0 0 / .95),
+    0 1px 3px rgb(0 0 0 / .9),
+    0 2px 6px rgb(0 0 0 / .75),
+    1px 1px 1px rgb(0 0 0 / .85),
+    -1px -1px 1px rgb(0 0 0 / .85);
+}
+
+/* Chromium paints native cues in a shadow overlay at the video's bottom edge.
+   That sits behind the control bar and can overflow the player entirely. Keep
+   the overlay inside the picture, leaving the same 4.25rem band as cueBox. */
+video::-webkit-media-text-track-container {
+  overflow: hidden;
+  height: calc(100% - 4.25rem) !important;
+}
+
+/* ── density ────────────────────────────────────────────────────────────────
+   Every size in this app is in rem, so the whole UI scales from one property.
+   That is what lets the same components serve a desk at arm's length and a TV
+   across a room, and later a real TV build, without a second stylesheet. */
+html { font-size: 16px; }
+/*
+ * TV type scale, as a share of the window rather than a flat bump.
+ *
+ * Every size in this app is in rem, so this one number is the whole scale.
+ * 0.9375vw is 18px at 1920 — a light step up for the ten-foot view without the
+ * old 20→24px range that ate the three Live panes and forced a horizontal
+ * scroll once pane widths scaled with the same root. Floor stays at desk size;
+ * the cap stops 4K from reading as a poster.
+ */
+html[data-density='tv'] { font-size: clamp(16px, 0.9375vw, 20px); }
+/*
+ * The floor is wrong on the box this app is actually for.
+ *
+ * `0.9375vw` is 18px on a 1920 CSS-px television, which is what the line above
+ * was tuned against. The set-top boxes report something else entirely: 960x540
+ * CSS pixels at device ratio 2. `vw` then asks for 9px, the clamp refuses and
+ * pins the root to its 16px floor — so every rem in the app paints at TWICE the
+ * share of the screen it was designed to take. Measured at 960x540: a guide row
+ * 77px tall on a 487px canvas (four channels out of 374 visible), a related-rail
+ * poster 256px wide (four across), and body type at 14px of 540 — the same
+ * angular size as 28px on a desk monitor. The owner's words for the two
+ * screenshots were "texts are too big and its really badly organized" and "grid
+ * items in some areas are not consistant or too big".
+ *
+ * So the floor moves where the CSS pixel is not a device pixel. 13px at ratio 2
+ * is 26 device pixels of body text on a 1080p panel — above Google TV's 12sp
+ * caption floor, close to its 14sp body figure, and 19% more room in every
+ * direction. The 16px floor stays for a television that reports its real width,
+ * where a rem already means what it says.
+ *
+ * The width clause is the same statement for a box that under-reports without
+ * lying about density: a TEN-FOOT layout in 1100 CSS pixels or fewer is a
+ * downscaled report, never a small screen.
+ */
+@media (max-width: 1100px), (min-resolution: 1.5dppx) {
+  html[data-density='tv'] { font-size: clamp(13px, 0.9375vw, 20px); }
+}
+
+/* Phones and tablets deliberately do NOT move the root size. The type is already
+   the right angular size in the hand; what is wrong on glass is the HIT TARGET,
+   and that is what the coarse-pointer rules below fix. Scaling the root instead
+   would cost rows on the screen that can least afford to lose them. */
+
+/* At TV density the pointer is a remote: hover states are useless, focus is
+   everything, and hit targets have to be large enough to land on with a D-pad. */
+/* The TV ring is defined ONCE, further up, for both selectors together.
+   It used to be duplicated here, with a comment warning that the two had to
+   agree because `data-density='tv'` is set exactly when `data-ff='tv'` is, they
+   weigh the same, and this copy is further down the file — so a disagreement
+   here silently wins. It then did exactly that: splitting the highlight colour
+   away from the accent changed one copy, and the ring stayed accent-coloured
+   because this one won. Two rules that must never disagree should not be two
+   rules. */
+html[data-density='tv'] .ctl { padding: .5rem; }
+html[data-density='tv'] .menu-row { padding: .5rem .875rem; }
+html[data-density='tv'] ::-webkit-scrollbar { width: 14px; height: 14px; }
+
+/* A focused row must not land flush against the edge of its scroller: on a D-pad
+   there is no way to nudge the view, so the focus ring IS the scroll position. */
+:focus-visible { scroll-margin: 1.5rem; }
+
+/*
+ * A scroller keeps its scroll to itself.
+ *
+ * Focus containment was already handled — `data-nav-contain` stops a D-pad press
+ * inside a sheet from reaching the page behind it — but the CSS half was missing,
+ * so a wheel or a finger that reached the end of a list carried on scrolling
+ * whatever was underneath it. This is the same rule for the other two inputs.
+ *
+ * Matched on the utility class, because that is where the scrollers are declared
+ * and there is no selector for "this element scrolls".
+ */
+/*
+ * Per AXIS, because the shorthand sets both.
+ *
+ * `overscroll-behavior: contain` on a table wrapper written `overflow-x-auto`
+ * also contains the VERTICAL axis — so a card that scrolls sideways refuses to
+ * pass an up-down wheel to the page behind it. Two tabs of the admin console
+ * were unscrollable for exactly this reason, with 2,301px below the fold on one
+ * of them, and the element responsible only ever scrolls sideways.
+ *
+ * Contain the axis the element actually scrolls, and let the other one chain.
+ */
+[class*="overflow-y-auto"], [class*="overflow-auto"] { overscroll-behavior-y: contain }
+[class*="overflow-x-auto"], [class*="overflow-auto"] { overscroll-behavior-x: contain }
+/*
+ * And the trap that comes with it, which cost two whole pages.
+ *
+ * `contain` blocks scroll CHAINING, and it does that whether or not the element
+ * it is on can scroll. So a box written `min-h-full overflow-y-auto` — a scroll
+ * container whose height grows to its own content, and which therefore never has
+ * anything to scroll — became a wall: the wheel found a scroller, found nothing
+ * to move, and was refused permission to pass the gesture to the ancestor that
+ * did have 435px of overflow. `/get` and the whole `/admin` console were
+ * unscrollable this way, with up to 2,301px below the fold on one tab.
+ *
+ * The rule is fine and stays. The lesson is about the class it matches: an
+ * element that declares `overflow-y-auto` must have a BOUNDED height —
+ * `h-full`, `flex-1 min-h-0`, a fixed size — or it is not a scroller, it is a
+ * blockage. `scripts/scroll-probe.mjs` walks every route and fails on any page
+ * with content below the fold that a wheel cannot reach.
+ */
+
+/*
+ * No long-press menu over artwork.
+ *
+ * A held press on an image in an Android WebView raises the system save/copy
+ * sheet — on a television, in the middle of an app, over a poster nobody can
+ * save. The app already holds the long press for favourites; see lib/longPress.
+ */
+body { -webkit-touch-callout: none; }
+
+/* ── touch ergonomics ───────────────────────────────────────────────────────
+   WCAG 2.2 sets 24x24 CSS px as the floor (2.5.8, AA) and both platform HIGs ask
+   for 44pt. The desk layout's 28px rows clear neither, so on a coarse pointer the
+   interactive primitives grow — and only those, so nothing reflows on a mouse. */
+html[data-pointer='coarse'] {
+  .ctl { padding: .625rem; }
+  .menu-row { min-height: 2.75rem; padding: .625rem .875rem; font-size: var(--t-md); }
+  /* Every list row in the app opts in with `tap`. */
+  .tap { min-height: 2.75rem; }
+  /* Except a row that already has a pitch. `.pick-row` is `--row-step` tall,
+     which is 44px or more in every form factor — a finger's target already —
+     and 2.75rem is not a fixed number: under an 18px root it is 49.5px, so the
+     country rail would step 49.5 beside a virtualised channel list that cannot
+     grow past 44. The two lists have to share one pitch (see `--row-step`). */
+  .pick-row.tap { min-height: var(--row-step); }
+  /* And a rail row has its own (see `--rail-step`), which is this same step
+     on a finger — and the compact one on a television that claims a coarse
+     pointer, as several do. */
+  .rail-rows .pick-row.tap { min-height: var(--rail-step); }
+  /* Overlay scrollbars: a 10px track is both unusable by thumb and a waste of
+     the 390px it is eating into. */
+  ::-webkit-scrollbar { width: 0; height: 0; }
+}
+
+/* ── reveal-on-hover, made reachable ───────────────────────────────────────
+   `opacity-0 group-hover:opacity-100` is a correct desktop idiom and a dead
+   control on a touchscreen or a remote — the hide-this-country button was
+   literally unreachable there. So the pattern gets a name, and the name means
+   "revealed by hover WHERE HOVER EXISTS, always present where it does not". */
+.reveal { opacity: 0; transition: opacity .12s; }
+.group:hover .reveal, .reveal:focus-visible { opacity: 1; }
+html[data-pointer='coarse'] .reveal, html[data-pointer='none'] .reveal, html[data-ff='tv'] .reveal {
+  opacity: 1;
+}
+
+/* ── panes ──────────────────────────────────────────────────────────────────
+   The panes used to be resizable, with a 1px splitter between each pair and the
+   dragged width persisted per viewer. On a television nobody drags anything, a
+   1px handle is a focus ring that vanishes, and a stored width from one set was
+   the wrong width on the next. Widths are shares of the screen now, fixed in the
+   route that owns them, and the splitter component is gone. */
+
+/* A pane whose child brings its own fixed size.
+   A sidebar written as `w-64 shrink-0` with an inner `flex-1 overflow-y-auto` is
+   right when it is the outermost element and wrong inside a resizable pane: the
+   child keeps its 256px and gets clipped (so dragging appears to do nothing),
+   and with no bounded height the inner scroller never becomes scrollable. */
+.pane-fill { display: flex; min-height: 0; }
+.pane-fill > * { width: 100% !important; height: 100% !important; min-width: 0; }
+
+/* ── gradients ──────────────────────────────────────────────────────────────
+   Asked for as "please add some gradients I like to make it a modern and
+   appealing", and then researched rather than guessed, because a television is
+   the one screen where a gradient can actively look worse than a flat colour.
+
+   The platform's own design guidance and every TV-UI writeup say the same three
+   things: dark grounds with SUBTLE gradients and limited accent colour read as
+   cinematic; saturated colour and long smooth ramps BAND on an 8-bit panel; and
+   contrast has to survive being looked at from three metres in a lit room.
+
+   So the rule here is: short distance, low contrast between stops, and never
+   across the whole screen. A 12% lift over 40% of a panel's height cannot band
+   because there are not enough steps in it to band with. Anything grander —
+   a full-viewport wash, a two-hue ramp — was tried on paper and belongs to a
+   theme that opts into it, not to every surface in the app.
+
+   `background-image`, so the theme's own `background-color` still shows through
+   underneath and one variable per surface is all a palette has to think about. */
+:root {
+  /* A single light source, above the screen. Everything raised catches a little
+     of it at the top and nothing catches it at the bottom. */
+  --grad-raise: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-ink) 5%, transparent) 0%,
+    transparent 42%
+  );
+  /* For the one or two surfaces that are the subject of their screen. */
+  --grad-hero: radial-gradient(
+    120% 90% at 50% 0%,
+    color-mix(in srgb, var(--color-tally) 9%, transparent) 0%,
+    transparent 68%
+  );
+  /* A card that is the whole point of its screen — a first-run choice, which is
+     a target the size of a poster and should look like one rather than like a
+     list row that grew. Still inside the rule above: one hue, 55% of the card,
+     10% at the strong end. Diagonal rather than vertical only because these sit
+     side by side and a vertical ramp on both reads as a seam between them. */
+  --grad-pick: linear-gradient(
+    152deg,
+    color-mix(in srgb, var(--color-tally) 11%, transparent) 0%,
+    color-mix(in srgb, var(--color-tally) 3%, transparent) 38%,
+    transparent 72%
+  );
+}
+/* A light mode has the light source in the same place and needs the opposite
+   sign — a white lift on white is invisible, a shadow is not. */
+html[data-mode='light'] {
+  --grad-raise: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-ink) 4%, transparent) 0%,
+    transparent 42%
+  );
+}
+/* `square` is the instrument look and opts out: a gradient on a hard-edged
+   panel reads as a smudge rather than as light. */
+html[data-ui]:not([data-ui='square']) .card,
+html[data-ui]:not([data-ui='square']) .sheet-panel {
+  background-image: var(--grad-raise);
+}
+.grad-hero { background-image: var(--grad-hero); }
+
+/* ── the room ───────────────────────────────────────────────────────────────
+   One generated image behind the two screens that are mostly empty: the first
+   run, and the modern launcher. Not a photograph — see the note at the top of
+   `apps/web/scripts/backdrop.mjs` for why a still found online is a licence that
+   follows the product onto every television it ships to.
+
+   The URL arrives as `--shot`, set inline by the component from
+   `import.meta.env.BASE_URL`. It cannot be written here: the wrapper build is
+   served from a file path, where `/backdrop.jpg` is the root of the device, and
+   Vite cannot rewrite an absolute `url()` in CSS for a relative base.
+
+   The scrim on top is the part that matters for legibility. The picture is dark
+   already, but "dark already" is not a contrast guarantee, and a heading that
+   lands on the bloom has to stay readable — so the ground is painted back over
+   it, heaviest at the top and bottom where the text actually sits and lightest
+   across the middle where the bloom is.
+
+   The first version was 84/58/88 and the image was invisible: a backdrop nobody
+   can see is a download nobody needed. 72/34/78 lets it read while keeping the
+   heading and the footer line on near-solid ground. */
+.backdrop {
+  background-image:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ground) 72%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 34%, transparent) 46%,
+      color-mix(in srgb, var(--color-ground) 78%, transparent) 100%
+    ),
+    var(--shot);
+  background-size: cover, cover;
+  background-position: center center, center center;
+  background-repeat: no-repeat, no-repeat;
+}
+/* A light theme is a different room and this image is not in it: a near-black
+   frame under white panels reads as a rendering fault rather than as depth. */
+html[data-mode='light'] .backdrop { background-image: none }
+
+/* ── the two forms of the lockup ────────────────────────────────────────────
+   The supplied artwork sets the product name in white, which is right on the
+   ground this app is built for and invisible on the light one it also offers.
+   So `Wordmark full` renders both and this decides: the artwork on a dark
+   ground, and on a light one the symbol plus the name as TEXT, which takes its
+   colour from `--color-ink` and is therefore correct either way.
+
+   A filter was the obvious alternative and is wrong: `invert()` would turn the
+   orange symbol blue along with the white letters. */
+/* ── the modern shell ───────────────────────────────────────────────────────
+   Two whole layouts, chosen in Settings › Appearance › Layout and published as
+   `data-shell` by `lib/skin.ts`. The structural differences — no settings cog,
+   a launcher home instead of a showcase — are in the components, because they
+   are different elements rather than different values. What lives here is the
+   look: the accent bar that replaces the filled pill, the bar under a launcher
+   tile, and the atmosphere behind them.
+
+   Every accent below is `--color-tally` and nothing else. That is the theme's
+   own accent and also whatever a viewer chose in Your own colours (see `Tint`),
+   so a second accent system would immediately disagree with the first one.
+
+   The banding rule from the gradient block above still applies, and applies
+   hardest here because this is the one screen that is mostly empty: short
+   distance, low contrast, one hue. */
+
+/* The bar under the current destination, which in this shell replaces the fill.
+   The class is applied by `Chrome`; the glow is the only part CSS adds, because
+   a border cannot fade upward. */
+/* No radius on a modern destination.
+   The retrofit layer rounds every `a` and `button` to `--r-sm`, which turned the
+   upward glow below into a filled pill with an underline stuck to it — the exact
+   treatment this shell replaces. An underline is a straight edge. */
+/* Doubled attribute, because the retrofit block is
+   `html[data-ui]:not([data-ui='square']) a` — (0,2,2) once `:not()` contributes
+   its argument — and a single-attribute selector here would lose to it. Measured
+   rather than reasoned: the first version of this left the tab a rounded pill
+   with an underline stuck to the bottom of it, which is both treatments at once. */
+/*
+  Modern is not soft-retrofit pills.
+
+  Tabs stay square (underline). Floating glass panes take a shallow mockup
+  radius — the WhatsApp Live mockup is rounded glass, not pill chrome.
+*/
+/* The MENU's destinations only. `.dest` is also the "label on focus" trick,
+   borrowed by buttons all over the app — the hero's DETAILS, filter and Show
+   buttons, the guide and the organiser — and unscoped, this rule squared every
+   one of them beside rounded neighbours: "some square things leaking". */
+/* Rounded again since the underline became `::before` with round ends of its own:
+   nothing about the line depends on the tab's corners any more, and a square tab
+   drew the one square highlight ring in the header ("even the highlighted areas
+   are square"). */
+html[data-shell='modern'][data-ui] header .dest,
+html[data-shell='modern'][data-ui] nav .dest { border-radius: var(--r-sm) }
+html[data-shell='modern'][data-ui] a:not(.glass-float):not(.glass-pane):not(.launch-tile):not(.modern-icon):not(.dest),
+html[data-shell='modern'][data-ui] button:not(.glass-float):not(.modern-icon),
+html[data-shell='modern'][data-ui] [role='button']:not(.modern-icon),
+html[data-shell='modern'][data-ui] input,
+html[data-shell='modern'][data-ui] select,
+html[data-shell='modern'][data-ui] textarea,
+html[data-shell='modern'][data-ui] .chip {
+  border-radius: var(--r-sm);
+}
+html[data-shell='modern'][data-ui] .glass-pane,
+html[data-shell='modern'][data-ui] .glass-float,
+html[data-shell='modern'][data-ui] .launch-tile,
+html[data-shell='modern'][data-ui] .live-sidebar,
+html[data-shell='modern'][data-ui] .live-list,
+html[data-shell='modern'][data-ui] .live-stage,
+html[data-shell='modern'][data-ui] .vod-sidebar,
+html[data-shell='modern'][data-ui] .vod-grid,
+html[data-shell='modern'][data-ui] aside.glass-float,
+html[data-shell='modern'][data-ui] .sheet-panel {
+  border-radius: 1rem;
+}
+html[data-shell='modern'][data-ui] .stage {
+  border-radius: 0.75rem;
+}
+
+/* Active tab: the accent, an underline, and light coming off THE LINE.
+
+   It was a `box-shadow` on the tab — `0 6px 14px -6px` — and a box-shadow is a
+   shadow of the whole rectangle, so it painted a soft halo all the way around
+   the tab and read as exactly the card this shell exists to remove: "that ugly
+   glow around the nav ... instead add that glow in the bottom border and no
+   card or boxing anything".
+
+   So the glow is a pseudo-element under the border instead, and a radial
+   gradient rather than a blurred box: the light has one source — the line — and
+   falls away downward from it. No `filter`, deliberately: a blur here would
+   make the tab a containing block to buy softness a gradient already has. */
+html[data-shell='modern'] .dest-here {
+  position: relative;
+  background: transparent;
+  color: var(--color-tally);
+  /* The line is `::before` below, not a border: a border cannot have round ends,
+     and it was the one square stroke left in a rounded header. Its 2px are kept
+     as transparent so the label does not jump when a tab becomes current. */
+  border-bottom: 2px solid transparent;
+  box-shadow: none;
+}
+html[data-shell='modern'] .dest-here::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: var(--color-tally);
+  pointer-events: none;
+}
+html[data-shell='modern'] .dest-here::after {
+  content: '';
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  /* `top: 100%`, not `bottom: -1px`. The second one anchors the box's BOTTOM a
+     pixel below the tab and grows it upward, which put the bright end of the
+     gradient thirteen pixels above the line and smeared it behind the label.
+     The light belongs under the line. */
+  top: 100%;
+  height: 0.85rem;
+  pointer-events: none;
+  background: radial-gradient(
+    72% 130% at 50% 0%,
+    color-mix(in srgb, var(--color-tally) 46%, transparent) 0%,
+    color-mix(in srgb, var(--color-tally) 14%, transparent) 42%,
+    transparent 78%
+  );
+}
+html[data-shell='modern'] .dest-here svg {
+  color: var(--color-tally);
+}
+/* Circular Search / Bell / Avatar — outline only, no filled chip. */
+html[data-shell='modern'][data-ui] a.modern-icon,
+html[data-shell='modern'][data-ui] button.modern-icon {
+  border-radius: 9999px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 28%, transparent);
+}
+html[data-shell='modern'][data-ui] a.modern-icon:hover,
+html[data-shell='modern'][data-ui] a.modern-icon:focus-visible,
+html[data-shell='modern'][data-ui] button.modern-icon:hover,
+html[data-shell='modern'][data-ui] button.modern-icon:focus-visible {
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  color: var(--color-ink);
+}
+
+/* ── the glass ──────────────────────────────────────────────────────────────
+   Reported from the sofa: "everything like disappears in the back transparency
+   right now". It did, and translucency was the reason rather than the cure. The
+   first version of this was a DARK fill at 68% over a dark photograph — the same
+   colour as the room it sat in — so a pane had no edge, a launcher card read as
+   a hole cut in the picture, and a column on Live was indistinguishable from the
+   gap beside it. Alpha alone is not a material.
+
+   What Apple's Liquid Glass does, and what tvOS 26 does with it at ten feet, is
+   four things at once. The blur is the least important of them:
+
+     the haze     blur, yes, but SATURATED and LIFTED. A pane has to come out
+                  brighter and more colourful than what is behind it or there is
+                  nothing to see. `saturate` is what makes the accent in the
+                  plate bleed up through the glass, and it is the single cue that
+                  separates a sheet of glass from a grey box. It was missing.
+     the floor    a fill in the theme's own panel colour, so type on the pane
+                  keeps a contrast guarantee whatever the picture underneath is
+                  doing. Glass that is only a filter becomes unreadable the
+                  moment something bright passes behind it.
+     the sheen    a light gradient from the top edge down. A sheet of glass is
+                  lit from somewhere, and a real one is brightest where the light
+                  meets it.
+     the rim      one bright hairline along the TOP edge, and soft dark weight
+                  gathered inside the BOTTOM. That pair IS the thickness — the
+                  specular edge Apple describes — and it costs one border colour
+                  and one inset shadow.
+
+   Refraction is the one part that cannot be had here, and it is worth saying why
+   rather than leaving it as a gap: `backdrop-filter` takes ten functions and not
+   one of them displaces a pixel. The technique that does — an SVG
+   `feDisplacementMap` fed to `backdrop-filter: url()` — is Chromium-only, and it
+   rebuilds a displacement map whenever the element changes size. On a television
+   box that is a compositor budget we do not have, spent on a distortion nobody
+   can see at three metres. Everything above is one pass the WebView already
+   runs. */
+html[data-shell='modern'] {
+  --glass-blur: 20px;
+  /* The two numbers that make it glass. Measured against the plate: at 100% and
+     1.0 the panes are invisible, which is exactly the fault this replaces. */
+  --glass-sat: 165%;
+  --glass-lift: 1.12;
+  /* The legibility floor, in the theme's OWN panel colour — so Neon glass is
+     violet and Cinema glass is graphite, rather than every palette wearing the
+     same blue sheet. */
+  --glass-bg: color-mix(in srgb, var(--color-panel) 50%, transparent);
+  --glass-bg-2: color-mix(in srgb, var(--color-panel) 64%, transparent);
+  /*
+   * And a third, for the surfaces somebody READS.
+   *
+   * 64% panel over a photographic room leaves a third of the photograph in the
+   * text. On the launcher that is the point — four large tiles with two words on
+   * each, floating over the room. On the Live page it is a list of a hundred
+   * channel names laid across a sunset, and the names sit on whatever happens to
+   * be behind them: a mountain ridge through one row, a bright sun through the
+   * next. Reported as "the background colors are bad".
+   *
+   * So a reading surface gets its own floor. Still glass — it keeps the sheen,
+   * the lit top hairline, the edge and the shadow, which is what the material
+   * actually is — but the room behind it is a suggestion at the edges rather
+   * than a pattern under the words. The number is deliberately near the top of
+   * the range: below about 90% the busiest part of the plate still reads through
+   * a list, and legibility on a screen watched from three metres is not a place
+   * to spend the last 6% of an effect.
+   */
+  --glass-read: color-mix(in srgb, var(--color-panel) 94%, transparent);
+  /* 176deg, not 180deg. A perfectly horizontal highlight reads as a gradient
+     fill; a degree or two off reads as a surface catching light. */
+  --glass-sheen: linear-gradient(176deg,
+    rgb(255 255 255 / .105) 0%,
+    rgb(255 255 255 / .038) 34%,
+    rgb(255 255 255 / .012) 66%,
+    rgb(255 255 255 / 0) 100%);
+  --glass-edge: rgb(255 255 255 / .07);
+  --glass-edge-lit: rgb(255 255 255 / .24);
+  --glass-rim:
+    inset 0 0 0 1px rgb(255 255 255 / .045),
+    inset 0 -28px 44px -32px rgb(0 0 0 / .75);
+  --glass-shadow: var(--glass-rim), 0 10px 28px -14px rgb(0 0 0 / .55);
+  --glass-float: var(--glass-rim), 0 22px 46px -22px rgb(0 0 0 / .7);
+  /* SELECTED — a row, a chip, the sign-in card: an accent hairline and a lit
+     interior. The first version was `inset 0 0 36px 6px` at 48%, which filled
+     the middle of a card with accent and took the label down with it. */
+  /* ── and every stop of it is INSET, which is the correction ──────────────
+     It ended with `0 0 20px -4px` at 34% — a soft halo cast OUTWARD. Everything
+     wearing this class is a row or a chip inside a pane: `.live-sidebar`,
+     `.live-list` and `.vod-sidebar` are all `overflow: hidden`, and the rows
+     sit `0.35rem` from the pane's inside edge. A 20px halo against 5.6px of
+     margin does not fade out, it runs into the clip and stops dead — measured
+     on the television as a straight vertical cut down the right of the selected
+     channel, with the blur still soft on the other three sides. "look the glows
+     outside, and there are many issues like this".
+
+     This is the same hazard the note at the top of this file already settled for
+     focus rings — "an inward ring is never clipped by the scroller's edge" — and
+     the selected state was the one case still arguing with it. `--tally-focus`
+     keeps its bloom: it dresses `.launch-tile`, which stands on the backdrop
+     with 2rem of air around it and nothing anywhere to clip it. */
+  --tally-glow:
+    inset 0 0 0 2px color-mix(in srgb, var(--color-tally) 46%, transparent),
+    inset 0 14px 34px -26px color-mix(in srgb, var(--color-tally) 62%, transparent),
+    inset 0 -14px 34px -28px color-mix(in srgb, var(--color-tally) 40%, transparent);
+  /* HIGHLIGHTED — where the next press lands. The same idea one stop stronger,
+     plus the bloom that lifts the card off the plate.
+
+     The RING is untouched: still 3px, still `--color-focus`, still drawn by the
+     one rule that has always drawn it, because selected and highlighted have to
+     stay different colours and `focus-ring-probe` holds that. What this adds is
+     the accent EDGE from the mockup, and the two do not collide — the ring
+     carries `outline-offset: -3px`, so it sits 3 to 6 pixels INSIDE the edge and
+     the accent takes the 2 pixels just OUTSIDE it. Orange outermost, highlight
+     just within, both readable from the sofa.
+
+     Tried inset first, which is wrong for the same reason it looked wrong: an
+     inset ring lands between the border and the outline, where it is a sliver
+     between two brighter lines. Outside the box it is the first thing the eye
+     reaches. */
+  --tally-focus:
+    0 0 0 2px color-mix(in srgb, var(--color-tally) 85%, transparent),
+    inset 0 26px 52px -30px color-mix(in srgb, var(--color-tally) 85%, transparent),
+    inset 0 -22px 46px -30px color-mix(in srgb, var(--color-tally) 55%, transparent),
+    0 0 34px -2px color-mix(in srgb, var(--color-tally) 46%, transparent),
+    0 26px 56px -26px rgb(0 0 0 / .8);
+}
+html[data-shell='modern'][data-mode='light'] {
+  /* White glass in a bright room. The floor goes up, the haze comes down — a
+     165% saturate on a white sheet is a stain — and the bright hairline is still
+     the top edge, but it has to be white on white rather than white on black. */
+  --glass-sat: 140%;
+  --glass-lift: 1.04;
+  --glass-bg: color-mix(in srgb, #ffffff 58%, transparent);
+  --glass-bg-2: color-mix(in srgb, #ffffff 74%, transparent);
+  --glass-read: color-mix(in srgb, #ffffff 95%, transparent);
+  --glass-sheen: linear-gradient(176deg,
+    rgb(255 255 255 / .55) 0%,
+    rgb(255 255 255 / .18) 38%,
+    rgb(255 255 255 / .04) 70%,
+    rgb(255 255 255 / 0) 100%);
+  --glass-edge: rgb(12 22 27 / .10);
+  --glass-edge-lit: rgb(255 255 255 / .85);
+  --glass-rim:
+    inset 0 0 0 1px rgb(255 255 255 / .5),
+    inset 0 -26px 40px -32px rgb(12 22 27 / .16);
+  --glass-shadow: var(--glass-rim), 0 8px 26px -14px rgb(0 0 0 / .22);
+  --glass-float: var(--glass-rim), 0 18px 40px -18px rgb(0 0 0 / .3);
+}
+html[data-shell='modern'] .glass-pane {
+  background-color: var(--glass-bg);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-lit);
+  box-shadow: var(--glass-shadow);
+}
+html[data-shell='modern'] .glass-float {
+  background-color: var(--glass-bg-2);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-lit);
+  box-shadow: var(--glass-float);
+}
+/* The chrome is glass as well, and one of these two mattered more than it
+   sounds. `.catalogue-bar` is the strip the first-run download hangs from, and
+   it was `bg-panel-2` — an opaque grey slab laid across the top of a
+   photographic room for the whole of a first launch. No amount of glass
+   underneath survives that. */
+/* The top menu is part of the body, not a bar sitting on it.
+   "its part of body same color, but a lighr border, like half border with 2
+   sides light gloes" — so no fill, no blur, no sheen: the header takes the
+   colour of whatever room it is in, and the ONLY thing marking it is the rule
+   underneath. That rule is a gradient rather than a line: transparent at both
+   ends, lit across the middle, so it reads as a half border with the light
+   falling off at each side instead of a hard edge running wall to wall.
+
+   `border-image` rather than a pseudo-element, because a gradient border is
+   exactly what it is for and the header already has children positioned
+   against its box. The slice of 1 fills each edge from the gradient; the other
+   three edges are 0px wide, so only the bottom one paints. */
+html[data-shell='modern'] header {
+  background-color: transparent;
+  background-image: none;
+  border-bottom: 1px solid transparent;
+  /* Mixed from `--color-ink`, not from the white glass edge: on the light
+     room the lit edge IS white, and a white hairline under a white header is
+     no hairline at all. Ink is correct in both rooms by construction. */
+  border-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-ink) 26%, transparent) 24%,
+    color-mix(in srgb, var(--color-ink) 26%, transparent) 76%,
+    transparent 100%
+  ) 1;
+}
+html[data-shell='modern'] .catalogue-bar {
+  background-color: color-mix(in srgb, var(--color-panel-2) 44%, transparent);
+  background-image: var(--glass-sheen);
+  border-bottom-color: var(--glass-edge);
+}
+/*
+  The rule that used to live here: blur only on small fixed panes, never on the
+  Movies/Series grid or any virtualised list, because backdrop-filter there
+  forces Chromium to keep a full-size composited layer of every cell — OOM on
+  /movies. It is kept as history rather than deleted, because it is still the
+  reason not to put one back on a scroller. The wider answer is below.
+*/
+/* ── and then the blur came off everything ──────────────────────────────────
+   Reported from the television: "it's too slow ... by adding some glassy
+   animations and borders now it's slow". Measured, walking the highlight across
+   the four launcher tiles at 6x CPU throttle:
+
+     with blur     p50 17ms   p95 33ms   34 of 116 frames over 32ms
+     without       p50 17ms   p95 17ms    4 of 154
+
+   Every press of the remote re-blurs the card it lands on and the card it
+   leaves, and a backdrop blur is a full-size snapshot of everything behind the
+   element. On a television box that is most of the frame budget, spent on the
+   one part of the effect nobody can see: the plate behind these panes is a soft
+   photograph with no detail to smear, at three metres, on a screen the viewer
+   is not holding.
+
+   So the blur is gone and the glass stays. What actually reads as a material at
+   that distance is the fill, the sheen down from the top edge, the lit hairline
+   and the shadow — all of which are one paint the compositor caches, and none
+   of which repaint when focus moves. Compare the pictures: the difference is
+   not visible; the difference in frames is eight to one.
+
+   `--glass-blur`, `--glass-sat` and `--glass-lift` are kept as tokens. Nothing
+   spends them now, and anything that wants to again should read this first. */
+/*
+   A form is a reading surface too, and this one is laid over the launcher on
+   purpose — "show the homepage always and show this dialog". At the glass fill a
+   tile behind it came through the middle of the username field, which is the one
+   place in the app where somebody is typing.
+
+   And it gets MORE than the reading floor, because it is a modal rather than a
+   pane. 94% is right for a column of channel names that belongs to the room it
+   sits in; at the same value the launcher's "Movies" and "Binge Favourites" were
+   still legible through the middle of a sign-in form, which reads as a rendering
+   fault rather than as depth. The glass is still there — sheen, lit hairline,
+   shadow, and the room visible around every edge of the card.
+*/
+html[data-shell='modern'] .welcome-card.glass-float {
+  background-color: color-mix(in srgb, var(--color-panel) 98%, transparent);
+}
+html[data-shell='modern'] .live-sidebar.glass-float,
+html[data-shell='modern'] .live-list.glass-float,
+html[data-shell='modern'] .vod-grid.glass-float,
+html[data-shell='modern'] .catchup-rail.glass-float,
+html[data-shell='modern'] .catchup-desk.glass-float,
+html[data-shell='modern'] .search-sheet.glass-float,
+html[data-shell='modern'] .live-stage.glass-float {
+  background-color: var(--glass-read);
+  /* Belt: nothing sets a blur on these any more, and nothing should. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* ── why the stage is in that list, and it is the important one ─────────────
+   `.live-stage` had the blur, and it breaks the rule written three lines above
+   it twice over. It is `overflow-y-auto` — a scroll surface, which the note
+   already says gets a fill instead — and it also carries `.ambient-wash`, whose
+   `background-image` gradient has a 700ms transition driven by `--ambient`,
+   which the player rewrites every 600ms while a picture is on screen.
+
+   A gradient transition that restarts before it finishes, on a scrolling pane
+   that is also asking the compositor to blur everything behind it, is a
+   continuous full-pane repaint for as long as the television is playing. That
+   is the shape of "once it was loading everything in the whole device was
+   getting stuck".
+
+   Measured on the channel list at 6x CPU throttle, scrolling 1020px:
+   with the blur, p50 133ms and 66 frames over 32ms; without it, p50 117ms and
+   45. A fifth of the frame budget and a third of the dropped frames, for a blur
+   nobody can see behind a channel list. */
+html[data-shell='modern'] .tally-glow.is-on,
+html[data-shell='modern'] .tally-glow:focus-visible,
+html[data-shell='modern'] .launch-tile:focus-visible {
+  border-color: var(--glass-edge);
+  box-shadow: var(--tally-glow);
+}
+/* Selection = inner glow only. Classic left-rule wash stays off Modern. */
+html[data-shell='modern'] .pick.is-on {
+  background: transparent;
+  border-color: transparent;
+  border-left-color: transparent;
+  box-shadow: var(--tally-glow);
+}
+html[data-shell='modern'] .pick:hover {
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  box-shadow: none;
+}
+/* The highlighted row is FILLED, and that is what lets the ring be thin — see
+   the note on the TV ring above. In the highlight's own colour rather than ink,
+   so the row and the ring around it read as one thing. 19%: enough that the ROW
+   is what the eye lands on and the ring is merely its edge — at 13% the white
+   line still did all the work and the wash read as a shadow. Ink stays white on
+   it (measured on the darkest ground in the set, the wash is ~19% of a near-white
+   over a near-black, so the name keeps a contrast ratio in the teens). */
+html[data-shell='modern'] .pick:focus-visible {
+  background: color-mix(in srgb, var(--color-focus) 19%, transparent);
+  box-shadow: none;
+}
+html[data-shell='modern'] .pick.is-on:hover,
+html[data-shell='modern'] .pick.is-on:focus-visible {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: var(--tally-glow);
+}
+/*
+ * Rows run edge to edge, the way the Series desk's episode list does.
+ *
+ * They were rounded pills inset 0.35rem from the pane and 0.15rem from each
+ * other, so the glow had somewhere to sit — on top of 0.75rem of pane padding.
+ * The owner, with the Series desk beside the Movies grid: "look when it has no
+ * padding it much cleanner and good, follow that everywhere please". The desk's
+ * rows are full-width bands with a hairline under each, inside the same rounded
+ * glass pane, and that is what these are now.
+ *
+ * Square, because a band that meets the pane's edge with rounded corners puts
+ * four notches where the highlight meets the side (the `no-round` note in
+ * `LiveSidebar` says the same about the classic rail). Nothing is lost by it:
+ * the selected glow (`--tally-glow`) and the focus ring are both drawn INSIDE
+ * the row, so neither needed the inset to stay visible.
+ *
+ * No left rule in this shell — selection is the glow — so its width goes; the
+ * hairline under each row is the separator the gap used to be.
+ */
+html[data-shell='modern'] .live-sidebar .pick,
+html[data-shell='modern'] .live-list .pick,
+html[data-shell='modern'] .vod-sidebar .pick {
+  border-left-width: 0;
+  box-sizing: border-box;
+}
+/* The hairlines, at the weight of the glass edge rather than of a rule: under a
+   filled focus wash and a tally glow a full `--color-rule` line on every row is
+   the border farm this shell took them out to avoid. The glass edge is the same
+   hairline the panes themselves wear, so a row separator reads as part of the
+   pane. */
+html[data-shell='modern'] .live-sidebar .pick-row.border-b,
+html[data-shell='modern'] .live-list .pick-row.border-b,
+html[data-shell='modern'] .vod-sidebar .pick-row.border-b {
+  border-bottom-color: var(--glass-edge);
+}
+html[data-shell='modern'] .live-sidebar .border-t,
+html[data-shell='modern'] .live-list .border-t {
+  border-top-color: color-mix(in srgb, var(--glass-edge) 70%, transparent);
+}
+/* No room inside glass. This was `padding: 0.75rem` on all five panes — a
+   frame of glass around every list, every grid and the picture, inside the page
+   margin and beside the gap — which is the "too many paddings" the owner
+   circled, and the thing the Series desk (which never wore these classes) did
+   not have. The page keeps its margin and the panes keep their gap and their
+   corners; what they hold now meets their edges. Never put overflow-y-auto on
+   an unbounded parent. */
+html[data-shell='modern'] .live-sidebar,
+html[data-shell='modern'] .live-list,
+html[data-shell='modern'] .live-stage,
+html[data-shell='modern'] .vod-sidebar,
+html[data-shell='modern'] .vod-grid {
+  box-sizing: border-box;
+  min-height: 0;
+}
+/*
+ * The picture meets its card.
+ *
+ * With the pane padding gone the stage touches the card on three sides, and its
+ * own 0.75rem corners would then sit INSIDE the card's 1rem ones — a sliver of
+ * glass showing at each top corner, which is exactly the "nothing is flush with
+ * the glassy card" the owner photographed. So the top corners are the card's
+ * inner radius (its 1rem less its 1px border) and the bottom ones are square,
+ * because the text under the picture carries on in the same card.
+ *
+ * On the stage itself rather than left to the card's clip: the player publishes
+ * the stage's computed radius as `--nv-r` for the native picture's hole, so the
+ * hole and the card agree about the corners too. Theatre and CSS fullscreen are
+ * excluded — the first by the `:not()`, the second by its `no-round`.
+ */
+html[data-shell='modern'][data-ui] .live-stage:not(.theatre-sheet) > .stage {
+  border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
+}
+/*
+ * Theatre: the picture column promoted to the whole television.
+ *
+ * It is the SAME element either way — see the note in `routes/Live.tsx` for why
+ * it must be, and what unmounting it used to cost — so everything that made it
+ * a column in a row of three has to come off when it becomes a sheet. Two
+ * things once did not: 0.75rem of panel padding, which left a ten-pixel frame
+ * of black around a picture that was asked to fill the screen, and the 1rem
+ * corner, which cut four notches out of the television. The panes carry no
+ * padding at all now; the zero stays here so one ever put back cannot reach the
+ * sheet.
+ *
+ * Placed after both rules it overrides, at equal specificity, which is the whole
+ * mechanism — the same one that made `relative` beat `fixed` on `.stage` once.
+ */
+html[data-shell='modern'] .theatre-sheet,
+html[data-shell='modern'][data-ui] .theatre-sheet {
+  padding: 0;
+  border-radius: 0;
+}
+html[data-shell='modern'][data-ui] .theatre-sheet .stage {
+  border-radius: 0;
+}
+html[data-shell='modern'] .live-sidebar > aside,
+html[data-shell='modern'] .vod-sidebar > aside {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Browse room plate — one photo under the whole shell (including transparent header).
+
+   A LAYER, not a container. It used to be the background of the div every route
+   renders inside, which made it an ancestor of every `<video>` in the app — and
+   the native-video hole-punch clears the background of opaque ancestors so the
+   surface behind the page can be seen, `background-image: none !important`
+   included. So the photograph disappeared the moment libVLC took the picture:
+   measured on the emulator as a perfectly flat strip where the website varies.
+
+   On its own layer it is never walked, and it carries the hole itself instead —
+   see the clip below. */
+html[data-shell='modern'] .modern-plate {
+  position: fixed;
+  inset: 0;
+  /* Behind the app and in front of nothing else, which is the same seat
+     `body::before` takes for the plain ground. */
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--color-ground);
+  background-image:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ground) 12%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 8%, transparent) 42%,
+      color-mix(in srgb, var(--color-ground) 40%, transparent) 100%
+    ),
+    var(--shot);
+  background-size: cover;
+  background-position: center;
+}
+/* Section washes — same plate file, different tint so rooms feel variable. */
+html[data-shell='modern'][data-section='movies'] .modern-plate {
+  background-image:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--color-tally) 14%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 35%, transparent) 40%,
+      color-mix(in srgb, var(--color-ground) 58%, transparent) 100%
+    ),
+    var(--shot);
+}
+html[data-shell='modern'][data-section='series'] .modern-plate {
+  background-image:
+    linear-gradient(
+      200deg,
+      color-mix(in srgb, #5b8def 16%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 32%, transparent) 42%,
+      color-mix(in srgb, var(--color-ground) 58%, transparent) 100%
+    ),
+    var(--shot);
+}
+html[data-shell='modern'][data-section='live'] .modern-plate {
+  background-image:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ground) 38%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 12%, transparent) 48%,
+      color-mix(in srgb, var(--color-ground) 62%, transparent) 100%
+    ),
+    var(--shot);
+}
+
+/* Glass columns own the fill — opaque sidebar paint would hide the plate. */
+html[data-shell='modern'] .live-sidebar > aside,
+html[data-shell='modern'] .vod-sidebar > aside {
+  background: transparent;
+  border-right-color: transparent;
+}
+html[data-shell='modern'] .live-list .border-rule,
+html[data-shell='modern'] .vod-grid .border-rule {
+  border-color: color-mix(in srgb, var(--color-rule) 55%, transparent);
+}
+/*
+ * Except the edge of the poster the remote is on.
+ *
+ * The rule above is (0,3,1) and `.tile:focus-visible .art` — the recoloured edge
+ * that marks a focused poster — is (0,3,0), so inside `.vod-grid` the softened
+ * hairline won and a focused poster kept its dim edge. Measured on the Movies
+ * grid in the density pass: `border-top-color` of the focused frame was the rule
+ * at 55%, not the highlight. The tile's own 2px ring cannot stand in for it —
+ * the lifted frame is its own layer and paints over the ring on three sides —
+ * so what was left of the highlight was a 4px lift. The highlight colour, never
+ * the accent; see `--color-focus`.
+ */
+html[data-shell='modern'] .tile:hover .art,
+html[data-shell='modern'] .tile:focus-visible .art {
+  border-color: var(--color-focus);
+}
+
+/* The bar under a launcher tile, and it is under it now.
+   "the border in the card is below it and its scaled from up but what we have
+   how is different" — two faults, both real. In the mockup the highlighted card
+   GROWS, and its accent bar is a detached pill floating in the gap BELOW the
+   card. Here the bar was a child of the card, painted just inside its bottom
+   padding, and the card never moved at all.
+
+   The pill is drawn as `::after` on the tile rather than by moving the span,
+   because the span occupies real space in the card's own column layout —
+   collapsing it would reflow the card on focus, and a highlight that changes
+   the size of what it lands on is the one thing this cannot do. So the span
+   stays as the 3px spacer it now is (`shell-probe` measures that every tile
+   keeps an equal, non-zero one), and the bar the viewer sees is painted outside
+   the box. `::after` is safe on a flex container: absolutely positioned
+   children are not flex items. */
+html[data-shell='modern'] .launch-bar {
+  height: 3px;
+  border-radius: var(--r-xs);
+  background: transparent;
+  box-shadow: none;
+}
+html[data-shell='modern'] .launch-tile {
+  position: relative;
+  transition: transform .18s ease-out, box-shadow .18s ease-out, border-color .18s;
+}
+html[data-shell='modern'] .launch-tile::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -0.85rem;
+  width: 4.25rem;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-tally);
+  box-shadow: 0 0 16px 2px color-mix(in srgb, var(--color-tally) 70%, transparent);
+  opacity: 0;
+  transform: translateX(-50%) scaleX(.35);
+  transition: opacity .16s ease-out, transform .2s ease-out;
+}
+/* Grown from the centre, so the card gets bigger in every direction instead of
+   sliding: a card that drifts sideways under the highlight reads as a fault.
+   5.5% is the whole lift — unmistakable from the sofa, and small enough that the
+   2rem gap to the next card still holds it. `transform` rather than width, so
+   the grid never reflows and the three cards beside it do not move. */
+html[data-shell='modern'] .launch-tile:hover,
+html[data-shell='modern'] .launch-tile:focus-visible {
+  transform: scale(1.055);
+  z-index: 3;
+  box-shadow: var(--tally-focus);
+  border-color: var(--glass-edge);
+  border-top-color: var(--glass-edge-lit);
+}
+html[data-shell='modern'] .launch-tile:hover::after,
+html[data-shell='modern'] .launch-tile:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) scaleX(1);
+}
+/* Reduced motion keeps the entire treatment and drops only the travel. A
+   highlight that animates in is a highlight that arrives late. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-shell='modern'] .launch-tile,
+  html[data-shell='modern'] .launch-tile::after { transition: none }
+  html[data-shell='modern'] .launch-tile:hover,
+  html[data-shell='modern'] .launch-tile:focus-visible { transform: none }
+}
+
+/* Progress follows the corner setting.
+   "the progress bars in the whole system don't follow the round layout … it's
+   all so square". Every bar is tagged where it is drawn: `meter` on a track
+   (the fills inside it round with it), `meter-edge` on a bar laid along a
+   card's bottom edge (the card's own corners already clip it, so only the
+   fill's leading end rounds), `meter-knob` on a seek handle. Square keeps
+   everything square — that is the one setting where a corner is meant. */
+html[data-ui]:not([data-ui='square']) .meter,
+html[data-ui]:not([data-ui='square']) .meter > * { border-radius: var(--r-full); }
+html[data-ui]:not([data-ui='square']) .meter-edge > * { border-radius: 0 var(--r-full) var(--r-full) 0; }
+html[data-ui]:not([data-ui='square']) .meter-knob { border-radius: var(--r-full); }
+
+/* Sports TV: the chosen sport's photograph behind the three panes. Heavier
+   scrim than the launcher's, because here the panes carry lists and a guide
+   rather than five big cards — the photo is atmosphere, the text must win.
+   Darkest on the left under the sport list, lighter behind the picture. */
+.sport-shot {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-ground) 78%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 55%, transparent) 55%,
+      color-mix(in srgb, var(--color-ground) 40%, transparent) 100%
+    ),
+    var(--shot);
+  background-size: cover;
+  background-position: center;
+}
+html[data-mode='light'] .sport-shot { opacity: 0.35; }
+
+/* Launcher room: plate via --shot on the node. */
+html[data-shell='modern'][data-ui]:not([data-ui='square']) .launcher {
+  background-image:
+    radial-gradient(
+      90% 60% at 50% 118%,
+      color-mix(in srgb, var(--color-tally) 10%, transparent) 0%,
+      transparent 66%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ground) 45%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 22%, transparent) 48%,
+      color-mix(in srgb, var(--color-ground) 58%, transparent) 100%
+    ),
+    var(--shot);
+  background-size: cover;
+  background-position: center;
+}
+/* The light room needs a heavier floor than the dark one.
+   Same picture, opposite problem: in light mode the scrim is painted in a
+   near-white ground, so a 58% bottom stop LIGHTENS the photograph instead of
+   settling it — and the footer, which is `--color-ink-3` by design, landed on
+   a sunlit ridge. Measured on the launcher: the date and the town were the
+   two least readable things on the screen. The middle stop stays low so the
+   plate is still a room rather than a wash. */
+html[data-shell='modern'][data-mode='light'][data-ui]:not([data-ui='square']) .launcher {
+  background-image:
+    radial-gradient(
+      90% 60% at 50% 118%,
+      color-mix(in srgb, var(--color-tally) 8%, transparent) 0%,
+      transparent 66%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ground) 62%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 38%, transparent) 44%,
+      color-mix(in srgb, var(--color-ground) 88%, transparent) 100%
+    ),
+    var(--shot);
+}
+
+/* Light mode normally kills `.backdrop` photos; modern keeps the plate. */
+html[data-shell='modern'][data-mode='light'] .backdrop {
+  background-image:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ground) 55%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 28%, transparent) 46%,
+      color-mix(in srgb, var(--color-ground) 62%, transparent) 100%
+    ),
+    var(--shot);
+}
+
+/* ── and on an engine without `color-mix()` ─────────────────────────────────
+   The build floor is Chrome 87 — `vite.config.ts` sets it deliberately and says
+   why in terms of television boxes whose WebView is frozen at whatever shipped
+   with the set. `color-mix()` is Chrome 111. Tailwind guards its own uses behind
+   `@supports` with a plain colour outside it (`css-compat.mjs` counted 107
+   guards over 206 uses); the fifty-nine hand-written uses in THIS file are
+   unguarded, and it is worth being precise about what that costs, because the
+   answer is not the same for all of them.
+
+   A custom property holding `color-mix(...)` is valid at PARSE time — custom
+   properties accept almost any token stream — and only fails when it is
+   substituted. At that moment the consuming declaration is invalid at
+   computed-value time, and IACVT does NOT fall back to an earlier declaration
+   in the cascade. It falls back to nothing.
+
+   Walked through, on an engine that cannot mix:
+
+     the gradients   `--grad-raise`, `--grad-hero`, the plate scrims: the whole
+                     `background-image` declaration drops, which takes `var(--shot)`
+                     with it. So the room is not painted at all. Plain, but safe —
+                     every one of those surfaces has an opaque ground underneath.
+     the glass       `--glass-bg` drops and a pane paints NOTHING, so the columns
+                     and the launcher cards stop existing as objects. That is the
+                     one that matters, and it is the fault that was reported.
+     the highlight   `--tally-glow` drops, so selection loses its mark entirely.
+                     On a screen driven by a remote that is not cosmetic.
+
+   So those last two get a plain floor here and nothing else does. Both stay
+   theme-aware without mixing: one flat alpha over the panel colour is not
+   available, but a SOLID accent ring is, and `--color-tally` is a plain colour
+   whatever the palette or the viewer's own tint.
+
+   Verified by inverting the condition and taking the picture, which is the only
+   way to see this branch on a machine that supports mixing. */
+@supports not (color: color-mix(in srgb, red, red)) {
+  html[data-shell='modern'] {
+    --glass-bg: rgb(18 26 31 / .62);
+    --glass-bg-2: rgb(18 26 31 / .76);
+    /* The reading floor needs one too, or the lists lose their fill entirely on
+       the engine this whole block exists for. */
+    --glass-read: rgb(18 26 31 / .95);
+    /* A ring rather than a wash: selected and highlighted still differ, by
+       thickness, which is the only axis left. */
+    --tally-glow: inset 0 0 0 2px var(--color-tally);
+    --tally-focus: inset 0 0 0 3px var(--color-tally), 0 24px 54px -24px rgb(0 0 0 / .8);
+  }
+  html[data-shell='modern'][data-mode='light'] {
+    --glass-bg: rgb(255 255 255 / .7);
+    --glass-bg-2: rgb(255 255 255 / .85);
+    --glass-read: rgb(255 255 255 / .96);
+  }
+  /* The header needs nothing here: it is body-coloured by design and its rule
+     is a `border-image` gradient, which has no `color-mix` in it. */
+  html[data-shell='modern'] .catalogue-bar {
+    background-color: rgb(24 36 42 / .82);
+  }
+}
+
+/* Search is one centred column and it IS the page, so it gets one pane rather
+   than a room. No blur: it scrolls. */
+html[data-shell='modern'] .search-sheet {
+  background-color: color-mix(in srgb, var(--glass-bg-2) 92%, var(--color-ground));
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-lit);
+  box-shadow: var(--glass-float);
+  margin-block: 0.75rem;
+  /*
+   * And nothing inside it, the Series desk's way: the card keeps its margin, its
+   * corners and its shadow, and what it holds meets its edges. It was 1rem of
+   * padding round every side (1.5rem above and below on a wide screen) — the
+   * field floating in the middle of the glass like a form on a page. The field
+   * is a band across the top now, the result rows are bands under it, and only
+   * what cannot be a band — the chip strips, the people, a sentence — keeps an
+   * inline inset, the same 0.75rem a row's own text starts at.
+   *
+   * Written here rather than in the two components because Classic draws no
+   * card at all, and there the same padding is the page's gutter, not a frame
+   * inside a frame. `overflow: hidden` is what lets the band's square corners
+   * sit under the card's round ones; the sheet grows with its content, so it
+   * clips nothing else.
+   */
+  padding: 0;
+  overflow: hidden;
+}
+html[data-shell='modern'][data-ui] .search-sheet { border-radius: 1rem; }
+html[data-shell='modern'] .search-sheet > form { margin-bottom: 0.75rem; }
+/* The field is still a band, but its corners follow the layout like a list row's:
+   square, its focus ring was a square box across the top of a rounded sheet. The
+   top two sit under the sheet's own corners either way. */
+html[data-shell='modern'][data-ui] .search-sheet > form input {
+  border-width: 0 0 1px;
+  border-radius: var(--r-row);
+}
+html[data-shell='modern'] .search-sheet > :not(form):not(ul) { margin-inline: 0.75rem; }
+html[data-shell='modern'] .search-sheet > ul { border-top-width: 0; }
+html[data-shell='modern'] .search-sheet > ul > li > a { padding-inline: 0.75rem; }
+
+/* ── Catch-up, given the same two panes Live has ────────────────────────────
+   It had none: a rail with an opaque `bg-panel` and a hard right rule, flush
+   against a desk with no surface at all, on the photographic plate. The same
+   room, in the same shell, in a completely different material.
+
+   No blur on either, for the reason three blocks up: both contain scroll
+   surfaces, and a blurred scroller is a full-pane repaint on every frame of a
+   scroll. The fill and the rim are what make it glass at three metres; the blur
+   was never the part anybody could see. */
+html[data-shell='modern'] .catchup-room {
+  gap: 0.75rem;
+  padding: 0.75rem;
+  box-sizing: border-box;
+}
+html[data-shell='modern'][data-ui] .catchup-rail,
+html[data-shell='modern'][data-ui] .catchup-desk {
+  border-radius: 1rem;
+}
+html[data-shell='modern'] .catchup-rail,
+html[data-shell='modern'] .catchup-desk {
+  background-color: color-mix(in srgb, var(--glass-bg-2) 92%, var(--color-ground));
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-edge);
+  border-top-color: var(--glass-edge-lit);
+  box-shadow: var(--glass-float);
+  overflow: hidden;
+}
+/* The rail's own right-hand rule is the boundary a gap now draws. */
+html[data-shell='modern'] .catchup-rail {
+  border-right-color: var(--glass-edge);
+}
+
+/* ── a floor for the rooms that have no panes ───────────────────────────────
+   The glass in this shell is named, surface by surface: the launcher tiles, the
+   Live columns, the Movies sidebar and grid, the sheets. Every OTHER page —
+   Settings, Catch-up, Search, Organise, Get the app — is plain divs with
+   Tailwind hairlines, and they were sitting directly on the photographic plate
+   with no fill whatsoever. Measured: 17 of 18 laid-out blocks on Settings paint
+   nothing at all, 38 of 42 on Catch-up. So the plate came through at full
+   strength behind every label, and "Sign in" was grey type on a sunset.
+
+   There is no class to hang glass on there, and inventing one on twenty pages is
+   how a shell becomes a patchwork. So the floor goes under the PAGE instead, on
+   the one element every page has, and only where a page has not already built
+   its own room: `data-section` is published for live / movies / series, and the
+   launcher repaints its own plate over the top of this. What is left is exactly
+   the set that needed it.
+
+   84% rather than solid: the room is still faintly there at the edges, which is
+   what keeps Settings recognisably part of the same app as Live, and 16% of a
+   dark photograph cannot take a label with it. */
+html[data-shell='modern']:not([data-section]) main {
+  background-color: color-mix(in srgb, var(--color-ground) 84%, transparent);
+}
+
+/* ── the band under a hero ──────────────────────────────────────────────────
+   The detail pages run one picture down the WHOLE page — the hero art is the
+   room, not a banner — and the hero's own gradients only reach the bottom of
+   the hero. Everything below it was left on a 55% scrim over a photograph at
+   full strength, with a hard rule marking the join: "too many inconsistencies
+   and pages not covering all the way".
+
+   So this band picks up exactly where the hero put it down. It starts at
+   near-solid ground, which is what the hero's last gradient stop is, and eases
+   back to let the room in further down — a join with no line in it, rather than
+   a border trying to explain one. Measured on the film page: the seam was at
+   345px and it is the first thing the eye lands on. */
+.detail-facts {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-ground) 94%, transparent) 0%,
+    color-mix(in srgb, var(--color-ground) 86%, transparent) 34%,
+    color-mix(in srgb, var(--color-ground) 74%, transparent) 100%
+  );
+}
+/* The rows keep their hairlines; the band does not need one of its own. */
+.detail-facts::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-ink) 14%, transparent) 22%,
+    color-mix(in srgb, var(--color-ink) 14%, transparent) 78%,
+    transparent 100%
+  );
+}
+/* The room behind a detail page: the art in the hero, ground everywhere else.
+   Pinned in `vh` because the hero is (`min-h-[56vh]`), so the ramp lands in the
+   same place whether the page is one screen or four. */
+.detail-room {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-ground) 26%, transparent) 0,
+    color-mix(in srgb, var(--color-ground) 30%, transparent) 30vh,
+    color-mix(in srgb, var(--color-ground) 76%, transparent) 52vh,
+    color-mix(in srgb, var(--color-ground) 94%, transparent) 66vh,
+    color-mix(in srgb, var(--color-ground) 96%, transparent) 100%
+  );
+}
+
+/* Modern gives the band the same fill and sheen as every other pane, and NO
+   blur. The band now sits on near-solid ground rather than on a photograph, so
+   a blur pass there would cost a full-width composited layer to blur something
+   already hidden — the kind of spend that shows up on a television box as the
+   whole device getting stuck, and buys nothing anybody can see. */
+html[data-shell='modern'] .detail-facts {
+  background-color: var(--glass-bg-2);
+  /* Two layers, and the lower one is the join: the hero above finishes at
+     near-solid ground, so this starts there too and thins out downward. Glass
+     alone came out LIGHTER than the hero it hangs from, which is a step in the
+     opposite direction from the one it replaced but still a step. */
+  background-image:
+    var(--glass-sheen),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-ground) 58%, transparent) 0%,
+      color-mix(in srgb, var(--color-ground) 20%, transparent) 42%,
+      transparent 100%
+    );
+}
+
+.brand-full { display: block }
+.brand-typed { display: none }
+html[data-mode='light'] .brand-full { display: none }
+html[data-mode='light'] .brand-typed { display: inline-flex }
+/* Doubled attribute, for the same reason `.pill` needed it: the `.card` rule
+   above is `html[data-ui]:not(…) .card` — and `:not()` carries its argument's
+   specificity, so that selector is (0,2,1) and a bare class could never beat it.
+   Measured, not reasoned: the first version of this changed nothing on screen. */
+html[data-ui][data-ui] .grad-pick { background-image: var(--grad-pick); }
+/* And `square` opts out of gradients entirely, here as everywhere. */
+html[data-ui='square'][data-ui] .grad-pick { background-image: none; }
+
+/* ── ambient light ──────────────────────────────────────────────────────────
+   `--ambient` is set on <html> by the player while a picture is on screen, from
+   the edges of the frame — see `lib/ambient.ts`. It is absent the rest of the
+   time, which is why every use below carries a `transparent` fallback and needs
+   no toggle: an un-lit surface simply paints nothing.
+
+   Subtle on purpose, and that is the platform's own guidance rather than taste:
+   saturated colour bands on a TV panel, oversaturated reds read as harsh at
+   three metres, and the whole effect has to survive being looked at for two
+   hours. So it lands as a wash at the top of a panel — where the picture above
+   it actually is — and never as a fill.
+
+   `background-image` rather than `background`, so a surface keeps its own
+   `background-color` from the theme and this sits on top of it. */
+.ambient-wash {
+  background-image: radial-gradient(
+    140% 70% at 50% 0%,
+    color-mix(in srgb, var(--ambient, transparent) 22%, transparent) 0%,
+    transparent 70%
+  );
+  transition: background-image 700ms linear;
+}
+/* Nothing at all where motion is unwelcome: a slowly shifting colour is exactly
+   what `prefers-reduced-motion` is asking about. */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-wash { background-image: none; transition: none }
+}
+
+/* ── tooltips ───────────────────────────────────────────────────────────────
+   The shadcn/Radix shape, positioned by `components/Tooltip.tsx` — fixed, so no
+   `overflow: hidden` ancestor can clip it, and pointer-transparent so it can
+   never eat the press that summoned it.
+
+   `left`/`top` and the translate come from the component as inline style, which
+   is why the entrance animates opacity ALONE: animating transform here would
+   fight the positioning and land the tooltip somewhere else for two frames. */
+.tip {
+  position: fixed;
+  z-index: 90;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+  max-width: min(22rem, calc(100vw - 1rem));
+  padding: .3rem .5rem;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--r-sm);
+  background: var(--color-panel-2);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--t-xs);
+  line-height: 1.3;
+  animation: tip-in .12s ease-out;
+}
+/* The first paint is a measurement: the flip and the centring both need the
+   tooltip's own size, so it renders once with no position and must not be seen
+   doing it. */
+.tip-measuring { visibility: hidden; }
+@keyframes tip-in { from { opacity: 0 } to { opacity: 1 } }
+
+/* The tip is the one place that overrides the scale, and it earns it: at ten
+   feet a hint set at the same step as the label it explains is a grey smudge.
+   One step up, not an arbitrary value. */
+html[data-density='tv'] .tip {
+  font-size: var(--t-md);
+  padding: .45rem .7rem;
+  border-width: 2px;
+}
+
+/*
+ * The hero for a channel.
+ *
+ * A film has a backdrop and a poster; a channel has a logo on a transparent
+ * background and nothing else, so the hero for one used to be a large dark
+ * rectangle — reported from a device holding only free channels. This is what
+ * fills it: a wash of the brand accent from behind where the logo sits, over the
+ * panel colour, so the area reads as designed rather than as missing.
+ *
+ * `color-mix` on the accent rather than a fixed colour, so it follows the brand
+ * and both themes without a second declaration.
+ */
+.channel-wash {
+  background-color: var(--color-panel-2);
+  background-image:
+    radial-gradient(120% 120% at 78% 30%,
+      color-mix(in srgb, var(--color-tally) 22%, transparent) 0%,
+      transparent 62%),
+    linear-gradient(to top, var(--color-ground) 4%, transparent 60%);
+}
+
+/* ══ phones and tablets ════════════════════════════════════════════════════════
+   The same app on glass. "make it responsive so … it can be used on normal
+   phones, tablets and everything — just make sure it doesn't affect the layout
+   for the televisions … I'd like to always open it horizontal and it should
+   adapt to the screen."
+
+   Every rule here is keyed on `data-touch-screen`, which `lib/formFactor.ts`
+   sets ONLY on a device it has positively identified as a phone or a tablet (a
+   coarse pointer with touch points, and not an Android TV by Android's own
+   word). A television and a desktop browser never carry the attribute, so none
+   of this can reach them — `data-ff` stays 'tv' everywhere, and what follows
+   adjusts the television layout for a smaller, closer, touched screen rather
+   than replacing it.
+
+   A tablet held sideways is already at least the television's 960x540 and needs
+   almost nothing; a phone is 360–430 CSS px tall, so almost everything here is
+   about giving the height back. */
+
+/* Notches and rounded corners: in landscape they sit left and right. */
+html[data-touch-screen] {
+  /* `env()` where the WebView reports it, and Capacitor's own variables where it
+     reports 0 (Chromium < 140) — whichever is larger. */
+  --touch-l: max(var(--edge-l), var(--safe-area-inset-left, 0px));
+  --touch-r: max(var(--edge-r), var(--safe-area-inset-right, 0px));
+  --touch-t: max(var(--edge-t), var(--safe-area-inset-top, 0px));
+  --touch-b: max(var(--edge-b), var(--safe-area-inset-bottom, 0px));
+}
+html[data-touch-screen] #root {
+  padding-left: var(--touch-l);
+  padding-right: var(--touch-r);
+  padding-bottom: var(--touch-b);
+}
+
+/* ── the header: one slim row ── */
+html[data-touch-screen='phone'] .app-header {
+  flex-wrap: nowrap;
+  gap: .5rem;
+  /* Clear of the status bar whenever Android is showing it. */
+  padding: calc(var(--touch-t) + .3rem) .6rem .3rem;
+}
+html[data-touch-screen='phone'] .app-mark .brand-full { height: 1.85rem; }
+html[data-touch-screen='phone'] .app-tabs { gap: .15rem; }
+html[data-touch-screen='phone'] .app-tabs .dest {
+  gap: .3rem;
+  padding: .35rem .5rem;
+  font-size: .8rem;
+}
+html[data-touch-screen='phone'] .app-tabs .dest svg { width: 1rem; height: 1rem; }
+html[data-touch-screen='phone'] .app-tools { gap: .35rem; }
+html[data-touch-screen='phone'] .app-tools > a,
+html[data-touch-screen='phone'] .app-tools > button,
+html[data-touch-screen='phone'] .app-tools > div > button {
+  width: 2.15rem;
+  height: 2.15rem;
+}
+html[data-touch-screen='phone'] .app-tools svg { width: 1.05rem; height: 1.05rem; }
+/* A narrow phone: the symbol instead of the whole lockup (Chrome passes `full`
+   off below 760px), and a label only on the destination you are on — every
+   icon still says where it goes. */
+html[data-touch-screen='phone'] .app-mark img:not(.brand-full) { width: 1.9rem; height: 1.9rem; }
+@media (max-width: 760px) {
+  html[data-touch-screen='phone'] .app-tabs .dest:not(.dest-here) > span { display: none; }
+}
+
+/* ── status lines: the same message, half the height ── */
+html[data-touch-screen='phone'] .catalogue-bar { padding-block: .2rem; }
+html[data-touch-screen='phone'] .catalogue-bar button { padding-block: .1rem; }
+
+/* ── pages: a thinner frame round the panes ── */
+html[data-touch-screen='phone'] .live-page,
+html[data-touch-screen='phone'] .vod-page,
+html[data-touch-screen='phone'] .catchup-room { gap: .5rem; padding: .5rem; }
+/* Catch-up's channel list is its drawer; the schedule and the picture share the rest. */
+html[data-touch-screen='phone'] .catchup-rail { border-right-width: 0; }
+/* The Channels button floats in the picture's corner, and the picture gives the
+   schedule — the actual content of this page — more of a short screen. */
+html[data-touch-screen='phone'] .catchup-desk > .no-round { position: relative; }
+html[data-touch-screen='phone'] .catchup-desk .rail-toggle {
+  position: absolute;
+  z-index: 5;
+  top: .75rem;
+  left: .75rem;
+  background: color-mix(in srgb, var(--color-panel) 90%, transparent);
+}
+html[data-touch-screen='phone'] .catchup-desk [class*='max-h-[42vh]'] { max-height: 34vh; }
+
+/* ── the category rail becomes a drawer ──
+   Beside the list on a television and a tablet; on a phone three columns leave
+   each one too narrow to read, so the rail waits off-screen and slides in over
+   the page (RailToggle opens it, a choice in it closes it — lib/railDrawer.ts). */
+html[data-touch-screen='phone'] .live-sidebar,
+html[data-touch-screen='phone'] .vod-sidebar,
+html[data-touch-screen='phone'] .catchup-rail {
+  --drawer-left: calc(var(--touch-l) + .5rem);
+  position: fixed;
+  z-index: 60;
+  top: calc(var(--touch-t) + .5rem);
+  bottom: calc(var(--touch-b) + .5rem);
+  left: var(--drawer-left);
+  width: min(18rem, 48vw);
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  /* All the way off, past the notch margin it starts from — no sliver. And
+     hidden once there, so nothing inside can be reached while it is away. */
+  transform: translateX(calc(-100% - var(--drawer-left) - 1rem));
+  visibility: hidden;
+  transition: transform .22s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .22s;
+  box-shadow: 0 24px 64px -12px rgb(0 0 0 / .7);
+}
+html[data-touch-screen='phone'][data-rail-open] .live-sidebar,
+html[data-touch-screen='phone'][data-rail-open] .vod-sidebar,
+html[data-touch-screen='phone'][data-rail-open] .catchup-rail {
+  transform: none;
+  visibility: visible;
+  transition: transform .22s cubic-bezier(.2, .8, .2, 1), visibility 0s;
+  /* The shade over the rest of the screen, as the drawer's own shadow — so it
+     stacks with the drawer and can never land on top of it. */
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / .55), 0 24px 64px -12px rgb(0 0 0 / .7);
+}
+/* Solid, not glass: a translucent drawer over a list is two lists at once. */
+/* `!important` because the modern shell's glass (`.glass-float`) paints these
+   panes with its own fill, sheen and blur at a higher specificity. */
+html[data-touch-screen='phone'] .live-sidebar,
+html[data-touch-screen='phone'] .vod-sidebar,
+html[data-touch-screen='phone'] .catchup-rail {
+  background-color: var(--color-panel) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+}
+/* The drawer lives inside the page, and the page paints under the header; while
+   it is open the page is lifted over the header so the drawer (and its shade)
+   cover the whole screen. */
+html[data-touch-screen='phone'][data-rail-open] .app-main { position: relative; z-index: 45; }
+/* With the rail gone the list and the picture share the width. */
+html[data-touch-screen='phone'] .live-list { width: 44%; min-width: 0; max-width: none; }
+html[data-touch-screen='phone'] .live-stage { min-width: 0; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-touch-screen='phone'] .live-sidebar,
+  html[data-touch-screen='phone'] .vod-sidebar,
+  html[data-touch-screen='phone'] .catchup-rail { transition: none; }
+}
+
+/* The phone in the "turn me" prompt, turning. */
+@keyframes rotate-hint { 0%, 30% { transform: rotate(0deg) } 55%, 85% { transform: rotate(-90deg) } 100% { transform: rotate(0deg) } }
+.rotate-prompt-phone { animation: rotate-hint 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rotate-prompt-phone { animation: none; } }
+
+/* ── signing in on a phone: the whole form on one short screen ── */
+/* Top-aligned with an auto margin rather than centred: a centred box taller
+   than the space above the keyboard (which takes two thirds of a sideways
+   phone) overflows at the TOP, where no scroll can reach — the field being typed
+   into sat behind the keyboard. With `margin-block: auto` it still centres when
+   it fits, and scrolls from its top edge when it does not. */
+html[data-touch-screen='phone'] .signin-overlay { padding-block: .4rem; overflow-y: auto; align-items: flex-start; }
+html[data-touch-screen='phone'] .signin-panel { max-width: 30rem; padding: .8rem 1.1rem; margin-block: auto; }
+html[data-touch-screen='phone'] .signin-panel .brand-full { height: 1.8rem; }
+html[data-touch-screen='phone'] .signin-panel h1 { font-size: 1.25rem; }
+html[data-touch-screen='phone'] .signin-panel > div:first-child { margin-bottom: .4rem; }
+
+/* ── settings on a phone: one list that scrolls, not two that overlap ── */
+html[data-touch-screen='phone'] nav[data-nav-group='settings'],
+html[data-touch-screen='phone'] nav[data-nav-group='organise'] { overflow-y: auto; width: 15rem; }
+html[data-touch-screen='phone'] nav[data-nav-group='settings'] > div { flex: none; overflow: visible; }
+
+/* The legal screens (routes/Legal.tsx): plain readable text, one focus stop per block. */
+.legal-text { font-size: var(--t-md); line-height: 1.6; color: var(--color-ink-2); padding-bottom: 3rem; }
+.legal-block { padding: .35rem .6rem; border-left: 3px solid transparent; }
+.legal-block:focus-visible { background: var(--color-panel-2); border-left-color: var(--color-tally); outline: none; }
+.legal-text h1 { font-size: var(--t-lg); color: var(--color-ink); margin: .4rem 0 .5rem; font-weight: 600; }
+.legal-text h2 { font-size: var(--t-md); color: var(--color-ink); margin: 1rem 0 .3rem; font-weight: 600; }
+.legal-text h3 { font-size: var(--t-md); color: var(--color-ink); margin: .8rem 0 .3rem; font-weight: 600; }
+.legal-text p, .legal-text li { margin: .35rem 0; }
+.legal-text ul, .legal-text ol { padding-left: 1.3rem; }
+.legal-text ul { list-style: disc; } .legal-text ol { list-style: decimal; }
+.legal-text a { color: var(--color-tally); text-decoration: underline; }
+.legal-text pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: var(--t-2xs); line-height: 1.4; color: var(--color-ink-3); }
+.legal-text mark.todo { background: color-mix(in srgb, var(--color-tally) 30%, transparent); color: inherit; padding: 0 .2em; }

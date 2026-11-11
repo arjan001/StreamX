@@ -1,0 +1,27 @@
+{
+  "name": "@iptv/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "VITE_BASE=./ VITE_ROUTER=hash VITE_PLATFORM=capacitor VITE_PACKAGED=1 VITE_DATA=local VITE_OUT=dist-app VITE_API_ORIGIN=${STREAMIX_API_ORIGIN:-} pnpm --filter @iptv/web build && node ../../scripts/stamp-build.mjs ../../apps/web/dist-app && node scripts/harden.mjs ../../apps/web/dist-app && node ../../scripts/css-compat.mjs ../../apps/web/dist-app",
+    "sync": "cap sync android",
+    "sync:ios": "cap sync ios",
+    "brand:ios": "node scripts/brand-assets-ios.mjs",
+    "ios:stamp": "node scripts/ios-stamp.mjs",
+    "brand": "node scripts/brand-assets.mjs",
+    "build:android": "node scripts/build-android.mjs",
+    "bundle": "node scripts/build-android.mjs bundle",
+    "apk": "node scripts/build-android.mjs debug"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "javascript-obfuscator": "5.6.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "7.6.9",
+    "@capacitor/preferences": "^7.0.4"
+  }
+}

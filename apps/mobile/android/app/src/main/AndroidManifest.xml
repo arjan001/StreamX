@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        This is a television app that also runs on a phone, so the hardware it
+        must NOT require has to be declared. Without these three lines the Play
+        Store and most TV boxes consider the app incompatible: a set-top box has
+        no touchscreen, and `leanback` unstated means "phone only".
+    -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+
+    <!--
+        Cleartext stays permitted on purpose: the servers people add here are
+        their own, and many of them answer plain http only. Native HTTP has no
+        mixed-content policy, so direct playback works, but Android still has to
+        allow cleartext, and it cannot be domain-scoped because users choose the
+        hosts and streams may redirect to a bare IP.
+    -->
+    <application
+        android:usesCleartextTraffic="true"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:banner="@drawable/tv_banner"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <!--
+            adjustResize: when the on-screen keyboard rises, the window shrinks
+            above it instead of the keyboard covering the page. Reported from a
+            television — the IME took the lower half of the screen and the field
+            being typed into was behind it. The page's own fallback for windows
+            that do not resize is apps/web/src/lib/softKeyboard.ts.
+        -->
+        <!--
+            sensorLandscape: always sideways, either way up. "I'd like to always
+            open it in a horizontal and it should adapt to the screen". A
+            television is landscape already; this is what keeps a phone or a
+            tablet the same shape as the app it is running.
+        -->
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustResize"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <!-- The TV launcher only lists activities that ask for it. -->
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <!--
+            The foreground service that has to be running before Android will
+            let this app record its own sound — see StreamixListenPlugin for why
+            that is how live subtitles work on a channel libVLC is playing.
+
+            `mediaProjection` is not decoration: from Android 14 a projection
+            token redeemed by a process whose service does not declare this type
+            throws the instant it is used.
+        -->
+        <service
+            android:name=".ListenService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Live subtitles on a channel the app plays with libVLC.
+
+      libVLC draws onto a surface behind the WebView, so the page has no audio to
+      transcribe, and there is no second connection to fetch it with — the line
+      allows one. `AudioPlaybackCapture` records what THIS app is playing, scoped
+      by uid to this app and nothing else.
+
+      RECORD_AUDIO is required even though no microphone is opened: the platform
+      builds playback capture on `AudioRecord` and gates both on the same
+      permission. Nothing from the microphone is read, sent or stored, and the
+      permission is asked for at the moment somebody switches subtitles on — with
+      that sentence in front of it — never on boot.
+
+      The feature is declared not-required so a set with no microphone hardware
+      is not excluded from the app over a subtitle feature.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <!-- Android 13+: lets the captions service's ongoing notice be shown. Asked for
+         at runtime, right before that service starts, never on launch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+</manifest>

@@ -1,0 +1,33 @@
+{
+  "name": "StreamX",
+  "wordmark": "STREAMX",
+  "tagline": "A player for your own sources.",
+  "description": "A player for the TV sources you add — playlists, Xtream servers and portals. Contains no channels.",
+  "logo": "brand/logo.png",
+  "accent": "#f09018",
+  "ground": "#0b1013",
+  "site": "",
+  "android": {
+    "applicationId": "com.streamx.app",
+    "orientation": "sensorLandscape",
+    "playStoreUrl": ""
+  },
+  "code": "STX",
+  "ios": {
+    "bundleId": "com.streamx.app",
+    "appStoreUrl": ""
+  },
+  "publisher": {
+    "name": "StreamX",
+    "email": "streamix24.com",
+    "website": "https://streamix24.com",
+    "address": "",
+    "governingLaw": "",
+    "termsEffectiveDate": "2026-10-01",
+    "privacyEffectiveDate": "2026-10-01"
+  },
+  "captions": {
+    "provider": "Soniox",
+    "privacyUrl": "https://soniox.com/policies/privacy-policy"
+  }
+}

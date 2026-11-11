@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  W3C widget manifest with Tizen's extensions, for the Samsung TV (`.wgt`) build.
+
+  This file is a TEMPLATE, not the exact file that ships. `build.mjs` copies it
+  into the staging directory and substitutes `__STREAMIX_API_ORIGIN__` for the
+  real API origin that build was configured with (see the `<access>` element
+  below) — the origin is a build-time choice (`STREAMIX_API_ORIGIN`, same
+  variable `apps/mobile`'s `build:web` reads), so it cannot be hard-coded here
+  without this file silently going stale the next time that origin changes.
+  The same step fills the widget version (from version.json, three numbers) and
+  the Tizen package and application ids (from the brand name — see manifest.mjs),
+  so none of them can drift from the rest of the repository.
+  Everything else here ships byte-for-byte.
+
+  Researched against Samsung's own current docs and real shipped Tizen TV apps
+  rather than guessed — see apps/tizen/README.md for the sources, because the
+  shape of this file (attribute names, namespaces, required_version scale) is
+  exactly the kind of thing nobody wants to re-research from scratch.
+-->
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="https://streamix.example/streamix"
+        version="__STREAMIX_VERSION__"
+        viewmodes="maximized">
+
+  <!--
+    required_version="5.5" — pinned to the OLDEST Tizen we intend to support,
+    the 2020 TV model year, deliberately not a newer number.
+
+    Tizen's TV releases map to Chromium versions (measured against Samsung's own
+    published mapping, cross-checked over several sources during this build's
+    research — see the README):
+
+      Tizen 5.0  (2019 TVs)  -> Chromium 63
+      Tizen 5.5  (2020 TVs)  -> Chromium 69
+      Tizen 6.0  (2021 TVs)  -> Chromium 76
+      Tizen 6.5  (2022 TVs)  -> Chromium 85
+      Tizen 7.0  (2023 TVs)  -> Chromium 94
+
+    `required_version` is a FLOOR: the Tizen store and a real TV's installer both
+    refuse to install a widget on any set older than the version declared here,
+    even if the app would actually run fine on it. Setting it to a newer number
+    than necessary quietly amputates however many TV-years sit below it; setting
+    it to an older number than the app can truly run on fails at first launch
+    instead of at install, which is a worse place to discover it.
+
+    5.5 (not 5.0, not 6.0) is chosen because it is the oldest year this app's
+    JS actually needs. `apps/web/vite.config.ts` already states and enforces a
+    Chrome-68-equivalent SYNTAX floor for the shared web bundle (optional
+    chaining, nullish coalescing, logical assignment, private fields all need
+    Chrome ~80 UNTRANSPILED, so Vite transpiles down to that target — see the
+    long comment there). Chromium 69 (Tizen 5.5) sits just above that floor;
+    Chromium 63 (Tizen 5.0) does not carry `@layer`-flattened CSS problems any
+    worse than 5.5 does (both are pre-`@layer`, both get the same
+    `scripts/css-compat.mjs` flattening pass), so 5.0 was a real candidate —
+    but it was not chosen because Samsung's own SDK documentation states that
+    WebAssembly support (used by `hls.js`'s and `mpegts.js`'s more optimized
+    code paths, and a plausible future dependency) starts at Tizen 5.5, and
+    because 2019-model TVs are a shrinking, already-old installed base next to
+    2020's. If a real support request for a 2019 set ever arrives, the number
+    to revisit is this one, not the JS/CSS floors — those already reach lower.
+  -->
+  <tizen:application
+      id="__TIZEN_APP_ID__"
+      package="__TIZEN_PACKAGE__"
+      required_version="5.5"/>
+
+  <!--
+    tv-samsung, not the generic "tv" profile. Verified against real, currently
+    shipping Samsung sample apps (e.g. Samsung/TizenTVApps, the Bitmovin Tizen
+    TV demo) — both values exist in the wild, but "tv-samsung" is what Samsung's
+    own Tizen Studio TV project templates and store submissions use, and it is
+    what unlocks the Samsung-specific product APIs (AVPlay among them) that a
+    plain "tv" profile does not declare intent to use.
+  -->
+  <tizen:profile name="tv-samsung"/>
+
+  <name>Streamix</name>
+  <icon src="icon.png"/>
+  <content src="index.html"/>
+
+  <!--
+    W3C Access Requests Policy (WARP): a Tizen web app cannot reach any network
+    origin it has not explicitly listed here, `tizen:privilege internet` or not
+    — the privilege turns network access ON at all, `access` says WHICH origins.
+    `subdomains="true"` because the API origin can differ by build (see
+    apiOrigin() in apps/web/vite.config.ts) and some deployments front it
+    behind a shared domain's subdomains.
+
+    The placeholder is substituted by build.mjs — see the file header.
+  -->
+  <access origin="__STREAMIX_API_ORIGIN__" subdomains="true"/>
+
+  <!--
+    Internet access itself. Without this the `access` element above is moot —
+    WARP and the privilege system are two separate gates and both must open.
+  -->
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+
+  <!--
+    Deliberately NOT requested yet: `tv.inputdevice`, `tv.audio`,
+    `tv.channel`, `tv.window`, `drmplay`. Samsung's review process penalizes
+    over-broad privilege requests, and none of those APIs are called by this
+    build — AVPlay integration (which would need some of them) is a known open
+    item, not yet implemented; see README.md. Add the specific privilege the
+    day the code that needs it lands, not before.
+  -->
+
+  <tizen:setting
+      screen-orientation="landscape"
+      context-menu="disable"
+      background-support="disable"
+      encryption="disable"
+      install-location="auto"
+      hwkey-event="enable"/>
+  <!--
+    hwkey-event="enable" is what makes the remote's Return/Back key reach the
+    page at all, as a `tizenhwkey` DOM event carrying keyCode 10009 — without
+    it the platform swallows that key before JS ever sees it. Whether
+    `apps/web/src/lib/remoteKeys.ts` already recognizes 10009 was not checked
+    from here: that file is mid-edit in a concurrent session (remote-key
+    handling), and apps/tizen/ does not touch anything outside itself. Recorded
+    as an open item in README.md rather than assumed either way.
+
+    context-menu="disable" turns off the platform's own long-press/right-click
+    menu, which exists for a mouse-and-keyboard web page and has no sensible
+    trigger on a D-pad remote; leaving it enabled is how you get a
+    browser-chrome context menu stealing focus from the app's own overlays.
+
+    background-support="disable" because this app has no reason to keep
+    running once the TV backgrounds it — it is a foreground video player, not
+    a widget with ambient behavior, and leaving background support on is a
+    battery/CPU cost on a box with neither in the TV sense but with cheap ARM
+    that shares thermal budget with everything else running.
+  -->
+
+</widget>

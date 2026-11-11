@@ -1,0 +1,27 @@
+{
+  "_comment": "Creative Commons films for store reviewers, served as /demo/playlist.m3u when DEMO_ENABLED=1. An entry with an empty url is skipped. Point url at a copy you host yourself (docs/SERVER.md, 'Demo playlist'); the blender.org links below are the official downloads and may be replaced at any time. Big Buck Bunny is only published there as .zip archives, so it has no direct link until you host the file.",
+  "group": "Demo films (Creative Commons)",
+  "entries": [
+    {
+      "name": "Big Buck Bunny (c) Blender Foundation | CC BY 3.0 | peach.blender.org",
+      "url": "",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "source": "https://peach.blender.org/about/"
+    },
+    {
+      "name": "Sintel (c) Blender Foundation | CC BY 3.0 | durian.blender.org",
+      "url": "https://download.blender.org/durian/movies/Sintel.2010.1080p.mkv",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "source": "https://durian.blender.org/sharing/"
+    },
+    {
+      "name": "Tears of Steel (c) Blender Foundation | CC BY 3.0 | mango.blender.org",
+      "url": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "source": "https://mango.blender.org/sharing/"
+    }
+  ]
+}

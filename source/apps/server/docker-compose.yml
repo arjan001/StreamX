@@ -1,0 +1,41 @@
+# The server and its Postgres. Copy .env.example to .env, fill it in, then:
+#   docker compose up -d --build
+#   docker compose run --rm server node --experimental-strip-types --no-warnings src/db/migrate.ts
+# Put a reverse proxy with TLS in front of port 7500 (docs/SERVER.md).
+services:
+  server:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+    env_file: .env
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: streamix
+      PGUSER: streamix
+      PGPASSWORD: ${PGPASSWORD:?set PGPASSWORD in .env}
+      # A reverse proxy in front on another container or host: name its address.
+      TRUST_PROXY: ${TRUST_PROXY:-172.16.0.0/12}
+    ports:
+      - "127.0.0.1:7500:7500"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: streamix
+      POSTGRES_USER: streamix
+      POSTGRES_PASSWORD: ${PGPASSWORD:?set PGPASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamix -d streamix"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:

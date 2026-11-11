@@ -1,0 +1,4 @@
+.build/
+# dist/ is the vendored libav.js build (see build.sh) and IS committed,
+# despite the repository-wide dist/ rule.
+!dist/

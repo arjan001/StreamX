@@ -1,0 +1,77 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Build web app
+        run: pnpm build
+
+      - name: Build Android APKs
+        run: |
+          pnpm build
+          pnpm --filter @iptv/mobile apk
+          cd apps/mobile/android
+          ./gradlew assembleRelease
+
+      - name: Copy APKs
+        run: |
+          mkdir -p releases
+          cp apps/mobile/android/app/build/outputs/apk/debug/*.apk releases/ || true
+          cp apps/mobile/android/app/build/outputs/apk/release/*.apk releases/ || true
+
+      - name: Generate checksums
+        run: |
+          cd releases
+          sha256sum *.apk > SHA256SUMS.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            releases/*.apk
+            releases/SHA256SUMS.txt
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

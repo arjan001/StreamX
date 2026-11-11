@@ -1,0 +1,35 @@
+# ── secrets ───────────────────────────────────────────────────────────────────
+# Never a copy either: a `.env.bak` was once committed here and every key in it
+# had to be rotated. The glob is wide on purpose.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── things the app repository builds, dropped in for this server to serve ────
+# Artefacts, not source. `src/paths.ts` says what each one is.
+/web/
+/downloads/
+
+# ── caches and output ─────────────────────────────────────────────────────────
+node_modules/
+*.tsbuildinfo
+.cache/
+
+# ── editors and operating systems ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ── logs and scratch ──────────────────────────────────────────────────────────
+*.log
+tmp/
+
+# pm2 writes this service's own logs here; logRotate.ts caps them at 128MB.
+logs/
+
+# Packages offered on /download (scripts/collect-downloads.mjs fills it).
+downloads/
