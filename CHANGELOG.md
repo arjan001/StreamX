@@ -4,6 +4,8 @@
 
 First store release of Streamix as a neutral player.
 
+- CI: Fixed tag creation to skip when tag already exists on remote, preventing re-run failures.
+
 - Plays sources the viewer adds: an Xtream server, an M3U playlist link, a
   single stream link, or a Stalker portal. Nothing is built in.
 - No adult section. Adult categories and titles from any source are filtered
