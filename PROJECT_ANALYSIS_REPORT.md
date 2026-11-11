@@ -473,7 +473,7 @@ To implement the hardcoded server URL (`http://line.istreamix.com/`):
 ### 10.2 What Needs Changes
 1. **Rebranding:** Streamix → SreamX across all files
 2. **Login Flow:** Simplify to show only username/password with hardcoded server URL
-3. **GitHub Repo Name:** Some links reference `SteamX`, some reference `Streamix` - needs consistency
+3. **GitHub Repo Name:** All links now reference `StreamX` consistently
 
 ### 10.3 Recommendations for Login Flow Change
 
