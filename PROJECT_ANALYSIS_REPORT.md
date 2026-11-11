@@ -84,9 +84,9 @@ The brand name propagates to:
 5. All documentation files referencing "Streamix"
 6. `docs/index.html` and `docs/index.md`
 7. `README.md`
-8. GitHub repository name (currently references `arjan001/SteamX` in some links)
+8. GitHub repository name (currently references `arjan001/StreamX` in some links)
 
-**Note:** The GitHub repo links in `docs/index.html` already reference `arjan001/SteamX` (without the 'I'), suggesting partial renaming work has been done.
+**Note:** The GitHub repo links in `docs/index.html` already reference `arjan001/StreamX` (without the 'I'), suggesting partial renaming work has been done.
 
 ---
 
@@ -176,7 +176,7 @@ The download page provides:
 - A table with architecture details and individual download links
 - Feature list including adult section and sports features
 - Installation instructions
-- Build status badge linking to `arjan001/SteamX`
+- Build status badge linking to `arjan001/StreamX`
 
 **APK URLs on GitHub Pages:**
 ```

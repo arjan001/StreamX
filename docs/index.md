@@ -12,7 +12,7 @@ A neutral IPTV player for live TV, movies, and series from user-provided sources
 ### Downloads
 
 <div style="background: #1a1a1a; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-  <a href="https://github.com/arjan001/SteamX/actions/workflows/build-android-apk.yml" style="display: inline-block; background: #f09018; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px;">
+  <a href="https://github.com/arjan001/StreamX/actions/workflows/build-android-apk.yml" style="display: inline-block; background: #f09018; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px;">
     📥 Download Latest APK from GitHub Actions
   </a>
   <p style="color: #888; margin-top: 10px; font-size: 14px;">
@@ -22,9 +22,9 @@ A neutral IPTV player for live TV, movies, and series from user-provided sources
 
 | Platform | Download | Size |
 |----------|----------|------|
-| Android (arm64-v8a) | [Get from Actions](https://github.com/arjan001/SteamX/actions/workflows/build-android-apk.yml) | ~51 MB |
-| Android (armeabi-v7a) | [Get from Actions](https://github.com/arjan001/SteamX/actions/workflows/build-android-apk.yml) | ~46 MB |
-| Android (Universal) | [Get from Actions](https://github.com/arjan001/SteamX/actions/workflows/build-android-apk.yml) | ~91 MB |
+| Android (arm64-v8a) | [Get from Actions](https://github.com/arjan001/StreamX/actions/workflows/build-android-apk.yml) | ~51 MB |
+| Android (armeabi-v7a) | [Get from Actions](https://github.com/arjan001/StreamX/actions/workflows/build-android-apk.yml) | ~46 MB |
+| Android (Universal) | [Get from Actions](https://github.com/arjan001/StreamX/actions/workflows/build-android-apk.yml) | ~91 MB |
 
 ### New Features
 
@@ -101,10 +101,10 @@ Download from LG Content Store (sideload via USB)
 
 | Workflow | Status |
 |----------|--------|
-| Unit Tests | ![Tests](https://github.com/arjan001/SteamX/workflows/Build%20Android%20APK/badge.svg) |
-| Type Check | ![TypeCheck](https://github.com/arjan001/SteamX/workflows/Build%20Android%20APK/badge.svg) |
-| Debug APK | ![Debug](https://github.com/arjan001/SteamX/workflows/Build%20Android%20APK/badge.svg) |
-| Release APK | ![Release](https://github.com/arjan001/SteamX/workflows/Build%20Android%20APK/badge.svg) |
+| Unit Tests | ![Tests](https://github.com/arjan001/StreamX/workflows/Build%20Android%20APK/badge.svg) |
+| Type Check | ![TypeCheck](https://github.com/arjan001/StreamX/workflows/Build%20Android%20APK/badge.svg) |
+| Debug APK | ![Debug](https://github.com/arjan001/StreamX/workflows/Build%20Android%20APK/badge.svg) |
+| Release APK | ![Release](https://github.com/arjan001/StreamX/workflows/Build%20Android%20APK/badge.svg) |
 
 ## Development
 
