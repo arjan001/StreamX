@@ -13,12 +13,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toQuery } from './localRead.ts';
 
-test('there is no wire clause that widens a query to adult rows', () => {
+test('adultOnly clause is passed through to filter only adult content', () => {
+  // Without adultOnly, the query should not have it
   const q = toQuery('movies', { hideStreams: [1] } as never) as Record<string, unknown>;
   assert.equal('adultOnly' in q, false);
   assert.equal('hideAdult' in q, false);
+  // With adultOnly: true, the query should pass it through to core-store
   const wide = toQuery('movies', { adultOnly: true, hideAdult: false } as never) as Record<string, unknown>;
-  assert.equal('adultOnly' in wide, false, 'an unknown clause is ignored, not honoured');
+  assert.equal('adultOnly' in wide, true, 'adultOnly clause is now honoured for /adult route');
+  assert.equal(wide.adultOnly, true, 'adultOnly should be true');
 });
 
 test('every filtering clause the wire carries survives the mapping', () => {

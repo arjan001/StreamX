@@ -266,6 +266,7 @@ export function toQuery(section: Section, q: ItemQuery): Query {
     ...(excluded(q.excludeTopic) ? { excludeStreams: excluded(q.excludeTopic)! } : {}),
     ...(q.sort ? { sort: q.sort } : {}),
     ...(isAdult ? { includeAdult: true } : {}),
+    ...(q.adultOnly ? { adultOnly: true } : {}),
     ...(q.dir ? { dir: q.dir } : {}),
   };
 }
