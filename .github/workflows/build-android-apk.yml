@@ -137,27 +137,11 @@ jobs:
           echo "APK files found:"
           ls -la "$APK_DIR"/*.apk 2>/dev/null || { echo "::error::No APK files found in $APK_DIR"; exit 1; }
 
-      - name: Upload APK - ARM64
+      - name: Upload all APKs
         uses: actions/upload-artifact@v4
         with:
-          name: app-arm64-v8a-release
-          path: apps/mobile/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk
-          retention-days: 30
-          if-no-files-found: error
-
-      - name: Upload APK - ARMv7
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-armeabi-v7a-release
-          path: apps/mobile/android/app/build/outputs/apk/release/app-armeabi-v7a-release.apk
-          retention-days: 30
-          if-no-files-found: error
-
-      - name: Upload APK - Universal
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-universal-release
-          path: apps/mobile/android/app/build/outputs/apk/release/app-universal-release.apk
+          name: apk-release
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
           retention-days: 30
           if-no-files-found: error
 
@@ -216,9 +200,8 @@ jobs:
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: app-*-release
-          path: site
-          merge-multiple: false
+          name: apk-release
+          path: site/apk
 
       - name: Build documentation
         run: |
@@ -229,15 +212,16 @@ jobs:
           cp README.md site/
           cp docs/index.html site/index.html
           # Move APK files to site root with clean names
-          if [ -d site/app-arm64-v8a-release ]; then
-            mv site/app-arm64-v8a-release/*.apk site/streamix-arm64.apk
-          fi
-          if [ -d site/app-armeabi-v7a-release ]; then
-            mv site/app-armeabi-v7a-release/*.apk site/streamix-armv7.apk
-          fi
-          if [ -d site/app-universal-release ]; then
-            mv site/app-universal-release/*.apk site/streamix-universal.apk
-          fi
+          for apk in site/apk/*.apk; do
+            if [[ "$apk" =~ arm64 ]]; then
+              mv "$apk" site/streamix-arm64.apk
+            elif [[ "$apk" =~ armeabi ]]; then
+              mv "$apk" site/streamix-armv7.apk
+            elif [[ "$apk" =~ universal ]]; then
+              mv "$apk" site/streamix-universal.apk
+            fi
+          done
+          rm -rf site/apk
           # Update version in index.html
           if [ -f version.txt ]; then
             VERSION=$(cat version.txt)
@@ -275,9 +259,8 @@ jobs:
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: app-*
+          name: apk-release
           path: releases
-          merge-multiple: false
 
       - name: Download version
         uses: actions/download-artifact@v4
@@ -296,12 +279,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd releases
-          > SHA256SUMS.txt
-          for dir in app-*; do
-            if [ -d "$dir" ]; then
-              (cd "$dir" && sha256sum *.apk) >> SHA256SUMS.txt
-            fi
-          done
+          sha256sum *.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Get version tag
@@ -325,9 +303,9 @@ jobs:
             ## Release ${{ steps.tag.outputs.version }}
 
             ### Downloads
-            - **ARM64 APK**: For most modern devices (recommended)
-            - **ARMv7 APK**: For older devices and legacy TV boxes
-            - **Universal APK**: Works on all devices (larger file)
+            - **streamix-arm64.apk**: For most modern devices (recommended)
+            - **streamix-armv7.apk**: For older devices and legacy TV boxes
+            - **streamix-universal.apk**: Works on all devices (larger file)
 
             ### Changes
             See commit history for details.
