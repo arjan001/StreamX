@@ -398,6 +398,7 @@ export function DetailHero({
                 </p>
               )}
 
+              {/* Cast images commented out for now; logic preserved for future re-enablement
               {(facts.director || facts.cast.length > 0) && (
                 <dl className="mt-3 space-y-1">
                   {facts.director && (
@@ -430,6 +431,7 @@ export function DetailHero({
                   )}
                 </dl>
               )}
+              */}
 
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {onPlay && (
