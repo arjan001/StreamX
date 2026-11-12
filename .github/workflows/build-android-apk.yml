@@ -93,7 +93,12 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: aminya/setup-android-sdk@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+          cmake: 3.22.1
+          ndk: 25.2.9519653
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -141,6 +146,7 @@ jobs:
           name: app-arm64-v8a-release
           path: apps/mobile/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk
           retention-days: 30
+          if-no-files-found: error
 
       - name: Upload APK - ARMv7
         uses: actions/upload-artifact@v4
@@ -148,6 +154,7 @@ jobs:
           name: app-armeabi-v7a-release
           path: apps/mobile/android/app/build/outputs/apk/release/app-armeabi-v7a-release.apk
           retention-days: 30
+          if-no-files-found: error
 
       - name: Upload APK - Universal
         uses: actions/upload-artifact@v4
@@ -155,6 +162,7 @@ jobs:
           name: app-universal-release
           path: apps/mobile/android/app/build/outputs/apk/release/app-universal-release.apk
           retention-days: 30
+          if-no-files-found: error
 
       - name: Generate version
         id: tag
@@ -208,6 +216,13 @@ jobs:
         with:
           name: version
 
+      - name: Download APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: app-*-release
+          path: site
+          merge-multiple: false
+
       - name: Build documentation
         run: |
           mkdir -p site
@@ -216,7 +231,16 @@ jobs:
           cp -r legal site/
           cp README.md site/
           cp docs/index.html site/index.html
-          # APK downloads are served from GitHub Releases, not hosted on Pages
+          # Move APK files to site root with clean names
+          if [ -d site/app-arm64-v8a-release ]; then
+            mv site/app-arm64-v8a-release/*.apk site/streamix-arm64.apk
+          fi
+          if [ -d site/app-armeabi-v7a-release ]; then
+            mv site/app-armeabi-v7a-release/*.apk site/streamix-armv7.apk
+          fi
+          if [ -d site/app-universal-release ]; then
+            mv site/app-universal-release/*.apk site/streamix-universal.apk
+          fi
           # Update version in index.html
           if [ -f version.txt ]; then
             VERSION=$(cat version.txt)
