@@ -11,6 +11,7 @@ import { isFieldSubmit } from '../lib/keys';
 import { typingDelay } from '../lib/typingDelay';
 import { focusFirst } from '../lib/spatialNav';
 import { useGridMetrics } from '../lib/useGridMetrics';
+import { linkId } from '../lib/api';
 
 /** Gender filter emoji map */
 const GENDER_EMOJI: Record<string, string> = {
@@ -339,7 +340,7 @@ export function Adult() {
         )}
       </div>
 
-      {/* Tags rail - tiny pill shaped tags */}
+      {/* Tags rail - commented out for now; logic preserved for future adult-only filtering
       <div className="shrink-0 border-b border-rule/40 bg-ground/30 p-2">
         <TagsRail
           onTagSelect={handleTagSelect}
@@ -347,13 +348,14 @@ export function Adult() {
         />
       </div>
 
-      {/* Cast rail - small circular performer avatars */}
+      Cast rail - commented out for now; logic preserved for future adult-only filtering
       <div className="shrink-0 border-b border-rule/40 bg-ground/30 p-2">
         <CastRail
           onCastSelect={handleCastSelect}
           selectedCast={selectedCast}
         />
       </div>
+      */}
 
       {/* Content grid */}
       <div className="flex-1 overflow-y-auto">
@@ -372,6 +374,7 @@ export function Adult() {
             onClear={() => setFilters(EMPTY_FILTERS)}
             offered={offered}
             filtered={filters.q !== '' || filters.categoryId != null || !!selectedTag || !!selectedCast || !!selectedSex}
+            href={(it) => `/movie/${linkId(it)}?from=adult`}
           />
         )}
       </div>

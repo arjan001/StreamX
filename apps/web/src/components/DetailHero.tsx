@@ -63,6 +63,16 @@ function fold(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+/** Get initials from a name (e.g., "John Doe" -> "JD"). */
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 /** Panel dates arrive ISO; a month name reads faster in a spec list. */
 function prettyDate(raw: string | null | undefined) {
   if (!raw) return null;
@@ -399,11 +409,23 @@ export function DetailHero({
                     </div>
                   )}
                   {facts.cast.length > 0 && (
-                    <div className="flex gap-2 text-xs">
-                      <dt className="w-16 shrink-0 font-mono text-[length:var(--t-2xs)] uppercase tracking-wider text-ink-3">
+                    <div className="flex flex-col gap-1.5">
+                      <dt className="font-mono text-[length:var(--t-2xs)] uppercase tracking-wider text-ink-3">
                         Cast
                       </dt>
-                      <dd className="min-w-0 text-ink-2">{facts.cast.slice(0, 8).join(', ')}</dd>
+                      <dd className="flex flex-wrap gap-1.5">
+                        {facts.cast.slice(0, 12).map((name) => (
+                          <span
+                            key={name}
+                            className="flex items-center gap-1.5 rounded-full bg-panel/60 px-2 py-1 text-[length:var(--t-2xs)] text-ink-2"
+                          >
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-tally/20 text-[length:var(--t-2xs)] font-semibold text-tally">
+                              {getInitials(name)}
+                            </span>
+                            <span className="truncate max-w-[120px]">{name}</span>
+                          </span>
+                        ))}
+                      </dd>
                     </div>
                   )}
                 </dl>

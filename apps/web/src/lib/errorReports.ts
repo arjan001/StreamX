@@ -43,17 +43,17 @@ import { deviceSummary, launchId, subscribeErrors, type DebugEntry } from './deb
 import { getSession } from './session.ts';
 
 /**
- * How long a queue waits before it is sent — "a debounce of a few mins".
+ * How long a queue waits before it is sent — "a debounce of one minute".
  *
  * Measured from the FIRST error in the queue, not the last. That distinction is
  * the whole design: a true debounce restarts its timer on every new event, so a
  * television in a crash loop — which is precisely the one worth hearing from —
  * would produce errors faster than the timer could expire and would never report
  * at all. A fixed window from the first error means the report always arrives,
- * three minutes after something started going wrong, with everything that
+ * one minute after something started going wrong, with everything that
  * happened in between in it.
  */
-export const FLUSH_MS = 180_000;
+export const FLUSH_MS = 60_000;
 
 /**
  * The most distinct errors one flush carries. The server caps at the same

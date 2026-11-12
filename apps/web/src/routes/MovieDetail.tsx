@@ -47,8 +47,9 @@ export function MovieDetail() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const movieBase = '/movie';
-  const backTo = '/movies';
   const [params, setParams] = useSearchParams();
+  const fromAdult = params.get('from') === 'adult';
+  const backTo = fromAdult ? '/adult' : '/movies';
   /**
    * Passed through as a STRING, not parsed.
    *
