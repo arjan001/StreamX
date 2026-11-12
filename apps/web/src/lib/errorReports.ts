@@ -206,6 +206,12 @@ export function flushBody(
 const VERSION = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? 'dev';
 const BUILD = (import.meta.env?.VITE_APP_BUILD as string | undefined) ?? '';
 const NATIVE = (import.meta.env?.VITE_PLATFORM as string | undefined) === 'capacitor';
+const API_ORIGIN = (import.meta.env?.VITE_API_ORIGIN as string | undefined) ?? '';
+
+// Debug: log the beta mode and API origin at startup
+if (typeof window !== 'undefined') {
+  console.log('[errorReports] IS_BETA:', NATIVE && BUILD !== '', 'NATIVE:', NATIVE, 'BUILD:', BUILD, 'API_ORIGIN:', API_ORIGIN);
+}
 
 /* ── the live half ─────────────────────────────────────────────────────────── */
 
@@ -249,6 +255,7 @@ export function noteError(e: DebugEntry): void {
   const sentAt = lastSent.get(sig);
   if (sentAt !== undefined && e.t - sentAt < RESEND_MS) return;
   queue = fold(queue, e);
+  console.log('[errorReports] Queued error:', e.tag, e.text, 'Queue size:', queue.length);
   /* The window starts with the first error and is not extended — see FLUSH_MS. */
   if (timer === null) timer = setTimeout(() => { void flush(); }, FLUSH_MS);
 }
@@ -262,13 +269,17 @@ export async function flush(): Promise<boolean> {
   const now = Date.now();
   for (const q of batch) lastSent.set(signature(q.tag, q.text), now);
   try {
-    const res = await fetch(apiUrl('/api/log/batch'), {
+    const url = apiUrl('/api/log/batch');
+    console.log('[errorReports] Flushing', batch.length, 'errors to', url);
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(flushBody(batch, Date.now())),
     });
+    console.log('[errorReports] Flush response:', res.status, res.ok);
     return res.ok;
-  } catch {
+  } catch (e) {
+    console.log('[errorReports] Flush failed:', e);
     /*
      * Dropped, deliberately, rather than put back.
      *
@@ -301,8 +312,11 @@ export function installErrorReports(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
 
+  console.log('[errorReports] installErrorReports called, IS_BETA:', IS_BETA);
+
   // Beta mode: always enable error reporting for client monitoring
   if (IS_BETA) {
+    console.log('[errorReports] Beta mode: enabling error reports');
     setErrorReportsEnabled(true);
   }
 
