@@ -99,6 +99,8 @@ jobs:
         run: pnpm build
 
       - name: Build Android release APK
+        env:
+          STREAMIX_API_ORIGIN: https://dev.lovix.com
         run: |
           pnpm --filter @iptv/mobile build:web
           pnpm --filter @iptv/mobile sync
