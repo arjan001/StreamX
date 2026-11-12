@@ -92,6 +92,9 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -118,7 +121,19 @@ jobs:
           pnpm --filter @iptv/mobile build:web
           pnpm --filter @iptv/mobile sync
           cd apps/mobile/android
-          ./gradlew assembleRelease
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Verify APK build output
+        run: |
+          APK_DIR="apps/mobile/android/app/build/outputs/apk/release"
+          if [ ! -d "$APK_DIR" ]; then
+            echo "::error::APK output directory not found: $APK_DIR"
+            echo "Build may have failed. Checking Gradle output..."
+            ls -la apps/mobile/android/app/build/outputs/ 2>/dev/null || echo "No outputs directory"
+            exit 1
+          fi
+          echo "APK files found:"
+          ls -la "$APK_DIR"/*.apk 2>/dev/null || { echo "::error::No APK files found in $APK_DIR"; exit 1; }
 
       - name: Upload APK - ARM64
         uses: actions/upload-artifact@v4
