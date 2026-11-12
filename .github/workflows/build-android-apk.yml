@@ -233,6 +233,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Prepare releases directory
+        run: mkdir -p releases
+
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
@@ -245,13 +248,25 @@ jobs:
         with:
           name: version
 
+      - name: Verify APK artifacts
+        run: |
+          if [ -z "$(find releases -name '*.apk' -type f 2>/dev/null)" ]; then
+            echo "::error::No APK artifacts found in releases directory. The build-apk job may have failed to upload artifacts."
+            exit 1
+          fi
+          echo "Found APK artifacts:"
+          find releases -name '*.apk' -type f
+
       - name: Generate checksums
         run: |
           cd releases
           > SHA256SUMS.txt
           for dir in app-*; do
-            (cd "$dir" && sha256sum *.apk) >> SHA256SUMS.txt
+            if [ -d "$dir" ]; then
+              (cd "$dir" && sha256sum *.apk) >> SHA256SUMS.txt
+            fi
           done
+          cat SHA256SUMS.txt
 
       - name: Get version tag
         id: tag
