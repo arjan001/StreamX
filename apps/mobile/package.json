@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:web": "VITE_BASE=./ VITE_ROUTER=hash VITE_PLATFORM=capacitor VITE_PACKAGED=1 VITE_DATA=local VITE_OUT=dist-app VITE_API_ORIGIN=${STREAMIX_API_ORIGIN:-} VITE_APP_BUILD=${VITE_APP_BUILD:-} pnpm --filter @iptv/web build && node ../../scripts/stamp-build.mjs ../../apps/web/dist-app && node scripts/harden.mjs ../../apps/web/dist-app && node scripts/css-compat.mjs ../../apps/web/dist-app",
+    "build:web": "VITE_BASE=./ VITE_ROUTER=hash VITE_PLATFORM=capacitor VITE_PACKAGED=1 VITE_DATA=local VITE_OUT=dist-app VITE_API_ORIGIN=${STREAMIX_API_ORIGIN:-} VITE_APP_BUILD=${VITE_APP_BUILD:-} pnpm --filter @iptv/web build && node ../../scripts/stamp-build.mjs ../../apps/web/dist-app && node scripts/harden.mjs ../../apps/web/dist-app && node ../../scripts/css-compat.mjs ../../apps/web/dist-app",
     "sync": "cap sync android",
     "sync:ios": "cap sync ios",
     "brand:ios": "node scripts/brand-assets-ios.mjs",
