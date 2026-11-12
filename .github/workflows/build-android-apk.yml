@@ -98,6 +98,18 @@ jobs:
       - name: Build web app
         run: pnpm build
 
+      - name: Generate signing keystore
+        run: |
+          mkdir -p ~/.streamix-signing
+          keytool -genkeypair -v -keystore ~/.streamix-signing/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=StreamX, OU=Dev, O=StreamX, L=City, S=State, C=US"
+          cat > ~/.streamix-signing/keystore.properties << 'EOF'
+          storeFile=~/.streamix-signing/release.keystore
+          storePassword=android
+          keyAlias=release
+          keyPassword=android
+          EOF
+          echo "STREAMIX_KEYSTORE_PROPS=$HOME/.streamix-signing/keystore.properties" >> $GITHUB_ENV
+
       - name: Build Android release APK
         env:
           STREAMIX_API_ORIGIN: https://dev.lovix.com
@@ -106,27 +118,27 @@ jobs:
           pnpm --filter @iptv/mobile build:web
           pnpm --filter @iptv/mobile sync
           cd apps/mobile/android
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
       - name: Upload APK - ARM64
         uses: actions/upload-artifact@v4
         with:
-          name: app-arm64-v8a-debug
-          path: apps/mobile/android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+          name: app-arm64-v8a-release
+          path: apps/mobile/android/app/build/outputs/apk/release/app-arm64-v8a-release.apk
           retention-days: 30
 
       - name: Upload APK - ARMv7
         uses: actions/upload-artifact@v4
         with:
-          name: app-armeabi-v7a-debug
-          path: apps/mobile/android/app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
+          name: app-armeabi-v7a-release
+          path: apps/mobile/android/app/build/outputs/apk/release/app-armeabi-v7a-release.apk
           retention-days: 30
 
       - name: Upload APK - Universal
         uses: actions/upload-artifact@v4
         with:
-          name: app-universal-debug
-          path: apps/mobile/android/app/build/outputs/apk/debug/app-universal-debug.apk
+          name: app-universal-release
+          path: apps/mobile/android/app/build/outputs/apk/release/app-universal-release.apk
           retention-days: 30
 
       - name: Generate version
