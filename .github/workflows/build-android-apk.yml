@@ -103,19 +103,7 @@ jobs:
       - name: Build web app
         run: pnpm build
 
-      - name: Generate signing keystore
-        run: |
-          mkdir -p ~/.streamix-signing
-          keytool -genkeypair -v -keystore ~/.streamix-signing/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=StreamX, OU=Dev, O=StreamX, L=City, S=State, C=US"
-          cat > ~/.streamix-signing/keystore.properties << 'EOF'
-          storeFile=~/.streamix-signing/release.keystore
-          storePassword=android
-          keyAlias=release
-          keyPassword=android
-          EOF
-          echo "STREAMIX_KEYSTORE_PROPS=$HOME/.streamix-signing/keystore.properties" >> $GITHUB_ENV
-
-      - name: Build Android release APK
+      - name: Build Android debug APK
         env:
           STREAMIX_API_ORIGIN: https://dev.lovix.com
           VITE_APP_BUILD: '1'
@@ -123,11 +111,11 @@ jobs:
           pnpm --filter @iptv/mobile build:web
           pnpm --filter @iptv/mobile sync
           cd apps/mobile/android
-          ./gradlew --no-daemon assembleRelease
+          ./gradlew --no-daemon assembleDebug
 
       - name: Verify APK build output
         run: |
-          APK_DIR="apps/mobile/android/app/build/outputs/apk/release"
+          APK_DIR="apps/mobile/android/app/build/outputs/apk/debug"
           if [ ! -d "$APK_DIR" ]; then
             echo "::error::APK output directory not found: $APK_DIR"
             echo "Build may have failed. Checking Gradle output..."
@@ -140,8 +128,8 @@ jobs:
       - name: Upload all APKs
         uses: actions/upload-artifact@v4
         with:
-          name: apk-release
-          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+          name: apk-debug
+          path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
           if-no-files-found: error
 
@@ -200,7 +188,7 @@ jobs:
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
-          name: apk-release
+          name: apk-debug
           path: site/apk
 
       - name: Build documentation
@@ -259,7 +247,7 @@ jobs:
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
-          name: apk-release
+          name: apk-debug
           path: releases
 
       - name: Download version
