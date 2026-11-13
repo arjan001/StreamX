@@ -122,4 +122,5 @@ Wire the update check and modal into the app lifecycle and Settings.
 - Modified `apps/web/src/main.tsx` to call `checkForUpdate()` after the Welcome/first-run flow completes and mount `<UpdateModal>` if an update is available.
 - Modified `apps/web/src/routes/More.tsx` About section to add a "Check for updates" row and show a "New release available" banner when an update exists.
 - The modal does not interfere with existing dialogs (Welcome, ExpiredDialog, ExitDialog) by using z-[71].
-- Verify TypeScript compilation passes with `npx tsc --noEmit`.
+- TypeScript compilation verified with `npx tsc --noEmit`.
+- Released as v1.64.2 (build 205) — committed and pushed to GitHub main branch.
