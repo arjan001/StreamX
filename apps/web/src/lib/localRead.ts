@@ -436,13 +436,13 @@ export function localItem(id: number | string): Item | null {
 
 
 /** The row behind a ref or an id, or null. Shared by every by-id read. */
-function rowFor(id: number | string): ItemView | null {
+function rowFor(id: number | string, includeAdult?: boolean): ItemView | null {
   const cat = localCatalogue();
   if (!cat) return null;
   const ref = typeof id === 'string' ? /^([0-3])\.(\d{1,12})$/.exec(id) : null;
-  if (ref === null) return getItem(cat, Number(id));
+  if (ref === null) return getItem(cat, Number(id), includeAdult);
   const at = streamRowIndex(cat, Number(ref[1]), Number(ref[2]));
-  return at === null ? null : getItem(cat, at);
+  return at === null ? null : getItem(cat, at, includeAdult);
 }
 
 /**
@@ -510,7 +510,9 @@ function familyRows(cat: Catalogue, key: string): readonly number[] {
 export function localPlay(
   id: number | string, format?: 'ts' | 'm3u8',
 ): PlaybackTarget | null {
-  const row = rowFor(id);
+  // Try normal lookup first, then adult-aware lookup for items from /adult
+  let row = rowFor(id);
+  if (row === null) row = rowFor(id, true);
   if (row === null) return null;
 
   /* A playlist entry needs no resolving: the URL IS the item. */
@@ -582,7 +584,8 @@ export function localPlay(
  * this is just the plumbing that hands it the facts.
  */
 export function localPlayReason(id: number | string): PlayUnavailableReason {
-  const row = rowFor(id);
+  let row = rowFor(id);
+  if (row === null) row = rowFor(id, true);
   return whyNoPlay({
     hasCatalogue: localCatalogue() !== null,
     rowFound: row !== null,
@@ -599,9 +602,9 @@ export function localPlayReason(id: number | string): PlayUnavailableReason {
  * an error. `detail: null` is the honest answer and the page already renders it:
  * it is the same shape a panel returns for a title it knows nothing about.
  */
-export function localMovieDetail(id: number | string): MovieDetailResponse | null {
+export function localMovieDetail(id: number | string, fromAdult?: boolean): MovieDetailResponse | null {
   const cat = localCatalogue();
-  const row = rowFor(id);
+  const row = rowFor(id, fromAdult);
   if (cat === null || row === null) return null;
   const c = row.categoryId === null
     ? null
@@ -626,10 +629,10 @@ export function localMovieDetail(id: number | string): MovieDetailResponse | nul
  * is the async sibling for a panel title, so the plot, cast, runtime and backdrops
  * arrive without the page having to wait for them to decide what it is.
  */
-export async function localMovieDetailFull(id: number | string): Promise<MovieDetailResponse | null> {
-  const base = localMovieDetail(id);
+export async function localMovieDetailFull(id: number | string, fromAdult?: boolean): Promise<MovieDetailResponse | null> {
+  const base = localMovieDetail(id, fromAdult);
   if (base === null) return null;
-  const row = rowFor(id);
+  const row = rowFor(id, fromAdult);
   /* A playlist entry carries a name, a logo and a URL. There is no plot to fetch
      and no panel to ask. */
   if (row === null || row.direct || row.streamId === null) return base;

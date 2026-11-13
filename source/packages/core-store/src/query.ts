@@ -84,6 +84,14 @@ export interface Query {
    * `titleCopyKey` for what "the same title" means.
    */
   oneCopy?: boolean;
+  /**
+   * Stop excluding adult rows. Used when the caller is the /adult section.
+   * When `adultOnly` is true, only adult rows are returned. When `includeAdult`
+   * is true (without `adultOnly`), adult rows are included alongside normal ones.
+   */
+  includeAdult?: boolean;
+  /** Show ONLY adult-flagged items. Implies `includeAdult`. */
+  adultOnly?: boolean;
 }
 
 export interface Page<T> {
@@ -301,7 +309,9 @@ export function matchRows(cat: Catalogue, q: Query): number[] {
       if (!streamIds.has(cols.streamId[i] ?? 0)) continue;
     }
     if (q.archiveOnly === true && ((cols.flags[i] ?? 0) & FLAG.archive) === 0) continue;
-    if (((cols.flags[i] ?? 0) & FLAG.adult) !== 0) continue;
+    const isAdult = ((cols.flags[i] ?? 0) & FLAG.adult) !== 0;
+    if (q.adultOnly === true && !isAdult) continue;
+    if (!q.includeAdult && isAdult) continue;
     const year = cols.year[i] ?? 0;
     if (q.yearFrom != null && (year === 0 || year < q.yearFrom)) continue;
     if (q.yearTo != null && (year === 0 || year > q.yearTo)) continue;
@@ -758,6 +768,18 @@ export function listAllSorted(cat: Catalogue, q: Query): ItemView[] {
 export function getItem(cat: Catalogue, id: number): ItemView | null {
   if (!Number.isInteger(id) || id < 0 || id >= cat.items.count) return null;
   if (rowIsAdult(cat, id)) return null;
+  return viewItem(cat.items, id);
+}
+
+/**
+ * Like `getItem`, but does not filter out adult rows.
+ *
+ * Used by the /adult section and by the Movie detail page when `?from=adult`
+ * is present, so an adult title can be looked up by id the same way a normal
+ * title is.
+ */
+export function getItemWithAdult(cat: Catalogue, id: number): ItemView | null {
+  if (!Number.isInteger(id) || id < 0 || id >= cat.items.count) return null;
   return viewItem(cat.items, id);
 }
 

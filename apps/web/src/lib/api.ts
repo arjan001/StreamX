@@ -501,8 +501,10 @@ export const api = {
   seriesDetail: (id: number | string) => fromDeviceAsync(() => localSeriesDetail(id), 'series detail'),
   /* The panel's own metadata, not just the catalogue row. `localMovieDetail`
      answers synchronously with `detail: null` for a playlist entry, which is the
-     honest shape; this fills in plot, cast and runtime for a panel title. */
-  movieDetail: (id: number | string) => fromDeviceAsync(() => localMovieDetailFull(id), 'movie detail'),
+     honest shape; this fills in plot, cast and runtime for a panel title.
+     `fromAdult` allows looking up adult-flagged items that the normal path blocks. */
+  movieDetail: (id: number | string, fromAdult?: boolean) =>
+    fromDeviceAsync(() => localMovieDetailFull(id, fromAdult), 'movie detail'),
   /**
    * The same page, minus everything that has to be ASKED for — answered now.
    *
@@ -518,7 +520,8 @@ export const api = {
    * placeholder the real query replaces when the panel answers. Null for a title
    * this device does not hold.
    */
-  movieDetailSeed: (id: number | string): MovieDetailResponse | null => localMovieDetail(id),
+  movieDetailSeed: (id: number | string, fromAdult?: boolean): MovieDetailResponse | null =>
+    localMovieDetail(id, fromAdult),
   episodePlay: (episodeId: number, ext: string | null) => {
     if (stalkerActive()) return stalkerEpisodePlay(episodeId);
     const answer = localEpisodePlay(episodeId, ext ?? undefined);

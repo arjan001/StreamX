@@ -110,10 +110,10 @@ export function MovieDetail() {
    * their skeletons rather than claim the panel said nothing.
    */
   const { data, isLoading, error, isPlaceholderData } = useQuery({
-    queryKey: ['movie', routeId],
-    queryFn: () => api.movieDetail(routeId),
+    queryKey: ['movie', routeId, fromAdult ? 'adult' : ''],
+    queryFn: () => api.movieDetail(routeId, fromAdult),
     retry: false,
-    placeholderData: () => api.movieDetailSeed(routeId) ?? undefined,
+    placeholderData: () => api.movieDetailSeed(routeId, fromAdult) ?? undefined,
   });
 
   const play = useCallback(async () => {
