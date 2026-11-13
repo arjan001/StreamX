@@ -4,7 +4,7 @@ import { Search, ChevronDown, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { TagsRail } from '../components/TagsRail';
 import { TitleGrid, useBrowseQuery } from '../components/TitleGrid';
 import { Nothing } from '../components/Nothing';
-import { EMPTY_FILTERS, filtersFromParams, paramsFromFilters, type Filters } from '../components/FilterBar';
+import { EMPTY_FILTERS, filtersFromParams, paramsFromFilters, type Filters, type QuickFilter, QUICK } from '../components/FilterBar';
 import { typingDelay } from '../lib/typingDelay';
 import { useGridMetrics } from '../lib/useGridMetrics';
 import { useShape } from '../lib/formFactor';
@@ -88,7 +88,7 @@ export function Adult() {
     [],
   );
 
-  const hasActiveFilter = selectedTag || selectedSex || filters.q;
+  const hasActiveFilter = selectedTag || selectedSex || filters.q || filters.quick !== null;
   const tallyOf = useTally();
 
   // Gender filter options matching the existing adult content genders
@@ -145,16 +145,27 @@ export function Adult() {
 
           {/* All pill */}
           <Pill
-            active={!selectedSex && !selectedTag && !filters.q}
+            active={!selectedSex && !selectedTag && !filters.q && !filters.quick}
             onClick={() => {
               setSelectedSex(null);
               setSelectedTag(null);
               setDraft('');
-              setFilters(EMPTY_FILTERS);
+              setFilters({ ...EMPTY_FILTERS, sort: 'default', dir: 'asc' });
             }}
           >
             All
           </Pill>
+
+          {/* Just added & Top rated quick filters */}
+          {QUICK.map((qf) => (
+            <Pill
+              key={qf.id}
+              active={filters.quick === qf.id}
+              onClick={() => setFilters({ ...filters, quick: filters.quick === qf.id ? null : qf.id })}
+            >
+              {qf.label}
+            </Pill>
+          ))}
 
           {/* Title count */}
           <span
@@ -176,7 +187,7 @@ export function Adult() {
                 setSelectedSex(null);
                 setSelectedTag(null);
                 setDraft('');
-                setFilters(EMPTY_FILTERS);
+                setFilters({ ...EMPTY_FILTERS, sort: 'default', dir: 'asc' });
               }}
               className={destBtn(false)}
             >
@@ -245,7 +256,7 @@ export function Adult() {
               onStats={onStatsCallback}
               onClear={() => setFilters(EMPTY_FILTERS)}
               offered={offered}
-              filtered={filters.q !== '' || filters.categoryId != null || !!selectedTag || !!selectedSex}
+              filtered={filters.q !== '' || filters.categoryId != null || !!selectedTag || !!selectedSex || !!filters.quick}
               href={(it) => `/movie/${linkId(it)}?from=adult`}
             />
           )}

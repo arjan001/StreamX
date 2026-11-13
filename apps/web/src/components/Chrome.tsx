@@ -1576,6 +1576,17 @@ export function Chrome({ children }: { children: React.ReactNode }) {
     : null;
   const onSearch = pathname === '/search';
 
+  /**
+   * Movie detail page opened from the Adult tab keeps the Adult tab lit.
+   *
+   * `/movie/:id?from=adult` is a detail page hanging off `/movie`, so `tabOwns`
+   * would light the Movies tab. The `from=adult` query param says the viewer
+   * arrived from the Adult section, so that tab stays highlighted.
+   */
+  const detailFrom = pathname.startsWith('/movie/')
+    ? `/${new URLSearchParams(search).get('from') ?? ''}`
+    : null;
+
   /* Pinned false: the layout is TV-only, so the phone furniture below never
      rendered. Kept as a constant so the JSX reads unchanged. */
   const phone = false;
@@ -1759,7 +1770,7 @@ export function Chrome({ children }: { children: React.ReactNode }) {
                   Modern: tally colour + underline only. No fill pill / card.
                 */
                 className={({ isActive }) => {
-                  const here = isActive || to === searchingFrom || tabOwns(to, pathname);
+                  const here = isActive || to === searchingFrom || to === detailFrom || tabOwns(to, pathname);
                   if (modern) {
                     const base = 'dest tap flex items-center gap-1.5 px-2.5 py-2 text-[length:var(--t-sm)]'
                       + ' font-medium tracking-wide transition-colors';
@@ -1963,6 +1974,10 @@ export function Chrome({ children }: { children: React.ReactNode }) {
  */
 function TabBar() {
   const inventory = useInv();
+  const { pathname, search } = useLocation();
+  const detailFrom = pathname.startsWith('/movie/')
+    ? `/${new URLSearchParams(search).get('from') ?? ''}`
+    : null;
   const items = PHONE_TABS.filter((t) => tabHasContent(t.to, inventory)).map(({ to, label, Icon }) => ({
     to,
     label: label.replace(' TV', ''),
@@ -1980,14 +1995,15 @@ function TabBar() {
             to={to}
             onFocus={() => preloadRoute(to)}
             onPointerEnter={() => preloadRoute(to)}
-            className={({ isActive }) =>
-              `flex flex-1 flex-col items-center justify-center gap-1 border-t-2 text-[length:var(--t-2xs)] font-mono
+            className={({ isActive }) => {
+              const here = isActive || to === detailFrom || tabOwns(to, pathname);
+              return `flex flex-1 flex-col items-center justify-center gap-1 border-t-2 text-[length:var(--t-2xs)] font-mono
                tracking-wide transition-colors ${
-                 isActive
+                 here
                    ? 'border-tally bg-tally/8 text-tally'
                    : 'border-transparent text-ink-3 active:bg-panel-2'
-               }`
-            }
+               }`;
+            }}
           >
             <Icon className="h-4.5 w-4.5" />
             {label}

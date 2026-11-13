@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Bug, ChevronRight, Cpu, Database, Palette, Scale, SlidersHorizontal, Star, Tv, Users,
+  Bug, ChevronRight, Cpu, Database, Download, Palette, RefreshCw, Scale, SlidersHorizontal, Star, Tv, Users,
 } from 'lucide-react';
 import { BRAND } from '../brand';
 import {
@@ -17,6 +17,9 @@ import { columnArrow } from '../lib/columns';
 import { isTypingTarget, useKeyLayer, type Binding } from '../lib/keys';
 import { useOkToType } from '../lib/okToType';
 import { LEGAL_PAGES, LEGAL_TITLES, appVersion } from '../legal';
+import { checkForUpdate, dismissVersion } from '../lib/updateCheck';
+import type { ReleaseInfo } from '../lib/updateCheck';
+import { UpdateModal } from '../components/UpdateModal';
 
 /**
  * Settings, as a screen with two halves.
@@ -335,6 +338,25 @@ export function More() {
 
   const hidden = prefs.hidePaths.length + prefs.hideCats.length;
 
+  /*
+   * Update check — triggered manually from the About section.
+   *
+   * Not automatic: the user presses "Check for updates" and, if a newer release
+   * exists, the modal appears. The banner shows inline when an update is found.
+   */
+  const [aboutRelease, setAboutRelease] = useState<ReleaseInfo | null>(null);
+  const [aboutChecking, setAboutChecking] = useState(false);
+  const checkAboutUpdate = async () => {
+    setAboutChecking(true);
+    const r = await checkForUpdate();
+    setAboutChecking(false);
+    if (r !== null) setAboutRelease(r);
+  };
+  const dismissAboutUpdate = () => {
+    if (aboutRelease !== null) dismissVersion(aboutRelease.version);
+    setAboutRelease(null);
+  };
+
   const version = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? '';
   const build = (import.meta.env?.VITE_APP_BUILD as string | undefined) ?? '';
   const packaged = (import.meta.env?.VITE_PLATFORM as string | undefined) === 'capacitor';
@@ -452,6 +474,42 @@ export function More() {
               </div>
             ))}
           </dl>
+          {/* Update banner — shown when a new release is found */}
+          {aboutRelease !== null && (
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-tally/30 bg-tally/8 px-3 py-2.5">
+              <div className="min-w-0">
+                <p className="font-mono text-[length:var(--t-xs)] text-tally">
+                  New release available v{aboutRelease.version}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAboutRelease(aboutRelease)}
+                className="tap ml-3 flex items-center gap-1.5 rounded-md bg-tally px-2.5 py-1 font-mono
+                           text-[length:var(--t-2xs)] font-semibold text-ground transition-colors hover:bg-tally/90"
+              >
+                <Download className="h-3.5 w-3.5" />
+                UPDATE
+              </button>
+            </div>
+          )}
+          {/* Check for updates button */}
+          <div className="mt-3 border-t border-rule pt-3">
+            <button
+              type="button"
+              disabled={aboutChecking}
+              onClick={checkAboutUpdate}
+              className="card-hover tap flex w-full items-center justify-between gap-3 px-1 py-2"
+            >
+              <div className="flex items-center gap-3">
+                <RefreshCw className={`h-4 w-4 shrink-0 text-ink-3 ${aboutChecking ? 'animate-spin' : ''}`} />
+                <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
+                  {aboutChecking ? 'Checking…' : 'Check for updates'}
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-ink-3" />
+            </button>
+          </div>
           <DebugSetting />
         </Pane>
       ),
@@ -517,6 +575,7 @@ export function More() {
   });
 
   return (
+    <>
     <div className="flex h-full min-h-0">
       {/*
         The sidebar.
@@ -642,5 +701,9 @@ export function More() {
         <div className="mx-auto w-full max-w-2xl tv:max-w-3xl">{current.pane()}</div>
       </div>
     </div>
+    {aboutRelease !== null && (
+      <UpdateModal release={aboutRelease} onDismiss={dismissAboutUpdate} />
+    )}
+    </>
   );
 }

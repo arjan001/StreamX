@@ -47,10 +47,13 @@ import { AddAccountDialog } from './components/AddAccountDialog';
 import { ExpiredDialog } from './components/ExpiredDialog';
 import { EmptySource } from './components/EmptySource';
 import { ExitDialog } from './components/ExitDialog';
+import { UpdateModal } from './components/UpdateModal';
 import { addAccountOpen, closeAddAccount, subscribeAddAccount } from './lib/addAccount';
 import { onExitAsk } from './lib/nativeBack';
 import { isNativeShell } from './lib/direct';
 import { startAccountChecks } from './lib/accountCheck';
+import { checkForUpdate, dismissVersion } from './lib/updateCheck';
+import type { ReleaseInfo } from './lib/updateCheck';
 
 /*
  * Routes load after first paint.
@@ -487,6 +490,25 @@ function Gate({ children }: { children: React.ReactNode }) {
   const cancelExit = useCallback(() => setExiting(false), []);
 
   /*
+   * New release check — after the welcome door closes, not before.
+   *
+   * The modal sits over the landing page, not over sign-in. It checks the
+   * GitHub API for the latest stable release, compares versions, and shows
+   * the "What's New" modal if a newer, non-dismissed release exists.
+   */
+  const [updateRelease, setUpdateRelease] = useState<ReleaseInfo | null>(null);
+  useEffect(() => {
+    if (welcome) return;
+    void checkForUpdate().then((r) => {
+      if (r !== null) setUpdateRelease(r);
+    });
+  }, [welcome]);
+  const dismissUpdate = useCallback(() => {
+    if (updateRelease !== null) dismissVersion(updateRelease.version);
+    setUpdateRelease(null);
+  }, [updateRelease]);
+
+  /*
    * When the library changes, every answer about it is stale.
    *
    * The first visit downloads its channels while the app is already open, so the
@@ -658,6 +680,11 @@ function Gate({ children }: { children: React.ReactNode }) {
       {/* Never over the door either — see `exiting` above. The registration already
           refuses while the door is open; this covers the frame in between. */}
       {exiting && !welcome && <ExitDialog onCancel={cancelExit} />}
+      {/* New release — after the door closes, not over it. z-[71] sits between
+          Welcome and ExpiredDialog so it never conflicts with critical dialogs. */}
+      {!welcome && !adding && !exiting && (
+        <UpdateModal release={updateRelease} onDismiss={dismissUpdate} />
+      )}
     </>
   );
 }
