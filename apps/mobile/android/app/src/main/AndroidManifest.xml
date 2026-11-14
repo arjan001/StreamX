@@ -105,9 +105,4 @@
          at runtime, right before that service starts, never on launch. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Allows the app to install APK updates downloaded from GitHub releases.
-         Android 8+ requires this permission for sideloading; the system will
-         still show the standard "Install unknown app" confirmation dialog. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
 </manifest>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle, Download, X } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import { useSkin } from '../lib/skin';
 import { focusFirst } from '../lib/spatialNav';
 import type { ReleaseInfo } from '../lib/updateCheck';
@@ -12,12 +12,11 @@ import type { ReleaseInfo } from '../lib/updateCheck';
  * z-[71] sits between Welcome (z-[70]) and ExpiredDialog (z-[72]).
  *
  * The changelog body comes from the GitHub release notes, rendered as plain text
- * in a scrollable area. Three states:
+ * in a scrollable area. Two states:
  * 1. "Update now" — fetches the APK as a blob and triggers download via blob URL,
  *    avoiding any browser navigation or "open with" dialog on Android TWA apps.
- * 2. "Downloading..." — shows while the APK is being fetched.
- * 3. "Install update" — appears after download completes, attempts to open the
- *    package installer intent.
+ * 2. "Downloading..." — shows while the APK is being fetched, then shows a
+ *    confirmation message telling the user to install the downloaded APK.
  * Dismiss closes and remembers the version (with 1-hour expiry).
  */
 export function UpdateModal({
@@ -120,29 +119,17 @@ export function UpdateModal({
 
         <div className="mt-5">
           {downloaded ? (
-            <button
-              data-nav-first
-              type="button"
-              onClick={() => {
-                // Try to open the downloaded APK for installation
-                // On Android, the download should be in the Downloads folder
-                // We attempt to trigger the package installer via intent
-                try {
-                  // On TWA/native WebView, try to use the Intent directly
-                  const intentUrl = `intent://view?package=${encodeURIComponent('com.streamix')}&type=application/vnd.android.package-archive#Intent;scheme=package;end`;
-                  window.location.href = intentUrl;
-                } catch {
-                  // Fallback: just let the user find it in their downloads
-                  onDismiss();
-                }
-              }}
-              className={`${button} bg-tally/8 border-tally/30`}
-            >
-              <CheckCircle className="h-5 w-5 shrink-0 text-ground" aria-hidden />
-              <span className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
-                Install update
-              </span>
-            </button>
+            <div className="mb-3 flex items-center gap-3 rounded-lg border border-tally/30 bg-tally/8 px-4 py-3">
+              <Download className="h-5 w-5 shrink-0 text-ground" aria-hidden />
+              <div>
+                <p className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
+                  Download started
+                </p>
+                <p className="text-[length:var(--t-xs)] text-ink-2 tv:text-[length:var(--t-sm)]">
+                  Find the APK in your Downloads folder and tap to install.
+                </p>
+              </div>
+            </div>
           ) : (
             <button
               data-nav-first
@@ -159,7 +146,7 @@ export function UpdateModal({
           )}
           <button type="button" onClick={onDismiss} className={button}>
             <span className="text-[length:var(--t-md)] text-ink tv:text-[length:var(--t-lg)]">
-              {downloaded ? 'Done' : 'Dismiss'}
+              Dismiss
             </span>
           </button>
         </div>

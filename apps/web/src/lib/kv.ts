@@ -137,6 +137,11 @@ async function hydrateNative(): Promise<void> {
         void Preferences.set({ key, value });
       }
     }
+    // After APK update, localStorage is wiped but Preferences survives.
+    // Always sync Preferences -> localStorage so the WebView sees the durable data.
+    for (const [key, value] of mirror) {
+      try { localStorage.setItem(key, value); } catch { /* quota */ }
+    }
   } catch {
     return;
   }

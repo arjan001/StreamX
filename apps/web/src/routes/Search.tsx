@@ -461,6 +461,7 @@ export function Search() {
           {showSuggestions && suggestions.length > 0 && (
             <div
               ref={suggestionsRef}
+              data-nav-contain
               className="absolute left-0 right-0 top-full z-50 mt-1 border border-rule bg-panel/95 backdrop-blur-md shadow-[0_8px_24px_-12px_rgb(0_0_0/.55)] overflow-hidden"
             >
               <div className="px-2 py-1.5">
