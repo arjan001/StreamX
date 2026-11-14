@@ -56,6 +56,16 @@ import { getSession } from './session.ts';
 export const FLUSH_MS = 60_000;
 
 /**
+ * How often a heartbeat is sent — every 5 minutes.
+ *
+ * A heartbeat is a synthetic "info" entry that carries the device identity,
+ * app version, build number and platform type. It lets the logs panel show
+ * every installed device even when nothing has gone wrong, and it keeps the
+ * "last seen" timestamp fresh for the device list.
+ */
+const HEARTBEAT_MS = 5 * 60_000;
+
+/**
  * The most distinct errors one flush carries. The server caps at the same
  * number; this is the client half of one rule.
  *
@@ -218,6 +228,7 @@ if (typeof window !== 'undefined') {
 let enabled = false;
 let queue: QueuedError[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let sending = false;
 let installed = false;
 
@@ -231,6 +242,7 @@ export function setErrorReportsEnabled(on: boolean): void {
      off has withdrawn consent for the lot, not for the next one. */
   queue = [];
   if (timer !== null) { clearTimeout(timer); timer = null; }
+  if (heartbeatTimer !== null) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
 }
 
 export function errorReportsEnabled(): boolean {
@@ -258,6 +270,30 @@ export function noteError(e: DebugEntry): void {
   console.log('[errorReports] Queued error:', e.tag, e.text, 'Queue size:', queue.length);
   /* The window starts with the first error and is not extended — see FLUSH_MS. */
   if (timer === null) timer = setTimeout(() => { void flush(); }, FLUSH_MS);
+}
+
+/**
+ * Send a heartbeat so the device appears in the logs panel even when idle.
+ *
+ * Runs every HEARTBEAT_MS. The heartbeat is a synthetic "info" entry with
+ * tag "heartbeat" that carries the version, build, and platform. It is
+ * deduplicated by the same RESEND_MS rule, so only one heartbeat per 30
+ * minutes actually reaches the server.
+ */
+function sendHeartbeat(): void {
+  if (!enabled) return;
+  const version = BUILD === '' ? VERSION : `${VERSION}+${BUILD}`;
+  const platform = NATIVE ? 'android-app' : 'web';
+  const device = Object.fromEntries(deviceSummary());
+  const model = device.model ?? 'unknown';
+  const text = `heartbeat v=${version} build=${BUILD || '0'} platform=${platform} model=${model}`;
+  const sig = signature('heartbeat', text);
+  const sentAt = lastSent.get(sig);
+  if (sentAt !== undefined && Date.now() - sentAt < RESEND_MS) return;
+  queue = fold(queue, { tag: 'heartbeat', text, level: 'info', t: Date.now() });
+  lastSent.set(sig, Date.now());
+  /* Flush immediately so the device shows up right away */
+  void flush();
 }
 
 export async function flush(): Promise<boolean> {
@@ -339,6 +375,18 @@ export function installErrorReports(): void {
      to the front after six hours (lib/appConfig.ts). Until it answers, and for
      ever when there is no box, reporting stays off, which is the default. */
   subscribeAppConfig(read);
+
+  /*
+   * Heartbeat: send device presence every 5 minutes so the logs panel shows
+   * every installed device even when nothing goes wrong. The heartbeat carries
+   * version, build, platform and model. It is deduplicated by RESEND_MS (30 min)
+   * so only one heartbeat per 30 minutes actually reaches the server.
+   */
+  if (IS_BETA) {
+    // Send initial heartbeat immediately so the device shows up right away
+    setTimeout(() => { sendHeartbeat(); }, 10_000);
+    heartbeatTimer = setInterval(() => { sendHeartbeat(); }, HEARTBEAT_MS);
+  }
 
   /*
    * A television being switched off is the end of the window, not a reason to
