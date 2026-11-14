@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.64.4 (2026-11-15)
+
+### Update System
+- Replaced the update modal popup with a slim top banner showing "UPDATE" label.
+- The banner sits at the very top of the app, above the navigation bar.
+- APK downloads silently in the background when clicking "Update", similar to Play Store behavior.
+- The full changelog modal is still available in Settings → About → "Check for updates".
+
+### Login Persistence
+- Fixed login credentials being lost after APK update: session data now syncs from native storage on every app boot, so users don't need to re-login after updating.
+
+### CI & Build
+- Removed the GitHub Pages deployment job that was causing CI failures on every build.
+- Fixed TypeScript type error in UpdateModal: added `download_url` field to ReleaseInfo type.
+- Fixed overlay navigation test: added `data-nav-contain` to search autocomplete dropdown.
+- Removed `REQUEST_INSTALL_PACKAGES` permission from Android manifest.
+
+### Bug Fixes
+- APK download no longer redirects users to the GitHub release page (which exposed the source code).
+- The "Check for updates" button in Settings → About now reliably shows the changelog modal, even after dismissing the banner.
+
 ## 1.64.3 (2026-11-14)
 
 ### Navigation
