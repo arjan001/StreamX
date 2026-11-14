@@ -30,7 +30,7 @@ import { installSlowPress } from './lib/slowPress';
 import { installSoftKeyboard } from './lib/softKeyboard';
 import { resumeRoute } from './lib/resume';
 import { initLocal, localEnabled } from './lib/localCatalogue';
-import { forgetPagedLists } from './lib/usePagedItems.ts';
+import { forgetPagedLists, prefetchAllTabs } from './lib/usePagedItems.ts';
 import { hydrateQueries, loadSnapshot, persistQueries, registerWorker } from './lib/warm';
 import { closeDoorForExistingInstall, doorOpen, subscribeDoor } from './lib/firstRun';
 import { localStatus, refreshLiveList, subscribeLocal } from './lib/localCatalogue';
@@ -495,14 +495,56 @@ function Gate({ children }: { children: React.ReactNode }) {
    * The modal sits over the landing page, not over sign-in. It checks the
    * GitHub API for the latest stable release, compares versions, and shows
    * the "What's New" modal if a newer, non-dismissed release exists.
+   *
+   * Runs on two triggers:
+   * 1. When the welcome door closes (first launch after install)
+   * 2. When the library becomes ready (after catalog download completes)
+   * This ensures the modal appears whether the user already had a catalog
+   * or just finished downloading one.
    */
   const [updateRelease, setUpdateRelease] = useState<ReleaseInfo | null>(null);
-  useEffect(() => {
-    if (welcome) return;
+  const checkUpdate = useCallback(() => {
     void checkForUpdate().then((r) => {
       if (r !== null) setUpdateRelease(r);
     });
-  }, [welcome]);
+  }, []);
+  useEffect(() => {
+    if (welcome) return;
+    checkUpdate();
+  }, [welcome, checkUpdate]);
+
+  /*
+   * Also check after the library becomes ready — a new account download or
+   * a catalog rebuild means the user is about to start watching, which is
+   * the right moment to show an available update.
+   */
+  useEffect(() => {
+    let seen: string | null = `${localStatus().state}:${localStatus().builtAt ?? 'none'}`;
+    return subscribeLocal((st) => {
+      if (st.state !== 'ready') return;
+      const gen = `${st.state}:${st.builtAt ?? 'none'}`;
+      if (gen === seen) return;
+      seen = gen;
+      // Delay slightly so the catalog-ready invalidations paint first
+      window.setTimeout(() => {
+        if (!welcome) checkUpdate();
+      }, 2000);
+    });
+  }, [welcome, checkUpdate]);
+
+  /*
+   * Periodic check — every hour, re-check for updates so a dismissed modal
+   * reappears if the user is still running an old version. Only runs when
+   * the app is in the foreground and nothing is playing.
+   */
+  useEffect(() => {
+    if (welcome) return undefined;
+    const timer = window.setInterval(() => {
+      if (!playing()) checkUpdate();
+    }, 3_600_000);
+    return () => window.clearInterval(timer);
+  }, [welcome, checkUpdate]);
+
   const dismissUpdate = useCallback(() => {
     if (updateRelease !== null) dismissVersion(updateRelease.version);
     setUpdateRelease(null);
@@ -553,6 +595,10 @@ function Gate({ children }: { children: React.ReactNode }) {
       if (st.state === 'ready' || st.builtAt !== null) void (playing() ? checkBulkGuide() : ensureBulkGuide());
       /* And the feeds renamed since this library was built — lib/liveNames.ts. */
       if (st.state === 'ready') void loadLiveNames();
+      /* Warm the first page of every major tab so the first navigation paints
+         rows instead of a skeleton. Runs after the catalogue is ready, not
+         before — a prefetch against an empty store is wasted work. */
+      if (st.state === 'ready') void prefetchAllTabs(qc);
     });
   }, []);
 
@@ -572,6 +618,24 @@ function Gate({ children }: { children: React.ReactNode }) {
     const first = window.setTimeout(kick, 8_000);
     const hourly = window.setInterval(kick, 3_600_000);
     return () => { window.clearTimeout(first); window.clearInterval(hourly); };
+  }, []);
+
+  /*
+   * Pre-fetch the first page of every major tab so navigation is instant.
+   *
+   * This runs well after the first paint (the first seconds belong to the
+   * home page and the guide download). It is deliberately delayed so it does
+   * not compete with the requests that actually paint the screen. When the
+   * library was already ready at boot, the subscribeLocal callback above does
+   * not fire, so this is the path that warms the cache.
+   */
+  useEffect(() => {
+    const st = localStatus();
+    if (st.state !== 'ready') return;
+    const timer = window.setTimeout(() => {
+      if (!playing()) void prefetchAllTabs(qc);
+    }, 3_000);
+    return () => window.clearTimeout(timer);
   }, []);
 
   /*

@@ -17,7 +17,7 @@ import { columnArrow } from '../lib/columns';
 import { isTypingTarget, useKeyLayer, type Binding } from '../lib/keys';
 import { useOkToType } from '../lib/okToType';
 import { LEGAL_PAGES, LEGAL_TITLES, appVersion } from '../legal';
-import { checkForUpdate, dismissVersion } from '../lib/updateCheck';
+import { dismissVersion, forceCheckForUpdate } from '../lib/updateCheck';
 import type { ReleaseInfo } from '../lib/updateCheck';
 import { UpdateModal } from '../components/UpdateModal';
 
@@ -348,7 +348,8 @@ export function More() {
   const [aboutChecking, setAboutChecking] = useState(false);
   const checkAboutUpdate = async () => {
     setAboutChecking(true);
-    const r = await checkForUpdate();
+    // Force check ignores dismiss state — user explicitly requested this
+    const r = await forceCheckForUpdate();
     setAboutChecking(false);
     if (r !== null) setAboutRelease(r);
   };

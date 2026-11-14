@@ -36,6 +36,7 @@ export function PosterCard({
   replace,
   subtitle,
   isAdult,
+  aspectRatio,
 }: {
   item: Item;
   to: string;
@@ -70,6 +71,8 @@ export function PosterCard({
   replace?: boolean;
   /** Whether this is an adult content card for special hover styling. */
   isAdult?: boolean;
+  /** CSS aspect ratio string, e.g. '2/3' (portrait) or '3/2' (landscape). */
+  aspectRatio?: string;
 }) {
   const [hover, setHover] = useState(false);
   const [prefs] = usePrefs();
@@ -182,7 +185,7 @@ export function PosterCard({
       {...holdFav}
       className={isAdult && hover ? 'ring-2 ring-offset-2 ring-pink-500 ring-purple-500 rounded-lg' : ''}
     >
-      <div className="relative">
+      <div className="relative" style={aspectRatio ? { aspectRatio } : undefined}>
         <Poster src={listArt(item)} alt={label} width={artWidth} />
         {/* The one corner mark, and only on a favourite. */}
         {favSection && item.streamId !== null && prefs.favs[favSection].includes(item.streamId) && (

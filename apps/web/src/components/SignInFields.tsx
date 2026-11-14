@@ -8,6 +8,91 @@ import { isActionKey, useOkToType } from '../lib/okToType';
 import { FALLBACK_PROVIDERS, PRIMARY_PROVIDER } from '../lib/providerUrls';
 
 /**
+ * Map a sign-in error message to a structured error code and troubleshooting hint.
+ * This helps users and support diagnose why login failed.
+ */
+function getErrorCode(message: string): React.ReactNode {
+  const msg = message.toLowerCase();
+
+  if (msg.includes('rejected') || msg.includes('username and password')) {
+    return (
+      <div>
+        <div><strong>Code: E001</strong> — Invalid credentials</div>
+        <div className="mt-1 text-ink-3">
+          The server rejected the username or password. Check for typos, or whether
+          the subscription is already active on another device.
+        </div>
+      </div>
+    );
+  }
+  if (msg.includes('busy') || msg.includes('turned that down')) {
+    return (
+      <div>
+        <div><strong>Code: E002</strong> — Server busy</div>
+        <div className="mt-1 text-ink-3">
+          The server is temporarily unavailable. Wait a minute and try again. If
+          the problem persists, your password may have been reset by the provider.
+        </div>
+      </div>
+    );
+  }
+  if (msg.includes('does not have this subscription') || msg.includes('not have')) {
+    return (
+      <div>
+        <div><strong>Code: E003</strong> — Subscription not found on server</div>
+        <div className="mt-1 text-ink-3">
+          The server answered but does not recognize this account. Verify the server
+          address and username with your provider.
+        </div>
+      </div>
+    );
+  }
+  if (msg.includes('no server answered') || msg.includes('could not reach')) {
+    return (
+      <div>
+        <div><strong>Code: E004</strong> — Cannot reach server</div>
+        <div className="mt-1 text-ink-3">
+          No server responded. Check your internet connection and the server address.
+          The server may be down or the address may be incorrect.
+        </div>
+      </div>
+    );
+  }
+  if (msg.includes('enter a username') || msg.includes('paste the full')) {
+    return (
+      <div>
+        <div><strong>Code: E005</strong> — Missing credentials</div>
+        <div className="mt-1 text-ink-3">
+          Enter a username and password, or paste the complete get.php link into the
+          username field.
+        </div>
+      </div>
+    );
+  }
+  if (msg.includes('enter the server address')) {
+    return (
+      <div>
+        <div><strong>Code: E006</strong> — Missing server address</div>
+        <div className="mt-1 text-ink-3">
+          Enter the server address your provider gave you, or paste a link that
+          includes the server URL.
+        </div>
+      </div>
+    );
+  }
+  // Generic fallback
+  return (
+    <div>
+      <div><strong>Code: E999</strong> — Unknown error</div>
+      <div className="mt-1 text-ink-3">
+        An unexpected error occurred. Try again, or contact your provider with this
+        error code and the message above.
+      </div>
+    </div>
+  );
+}
+
+/**
  * The three fields and the button, on their own, so two screens can ask the same
  * question.
  *
@@ -256,6 +341,18 @@ export function SignInFields({
         <p role="alert" className="mt-2 border border-alert/60 bg-alert/10 p-2 text-[length:var(--t-xs)] text-alert">
           {error}
         </p>
+      )}
+
+      {/* Error code hint — helps support diagnose login issues */}
+      {error !== null && (
+        <details className="mt-1.5 rounded border border-rule/50 bg-panel/50">
+          <summary className="cursor-pointer px-2 py-1 font-mono text-[length:var(--t-2xs)] text-ink-3 hover:text-ink">
+            Error details
+          </summary>
+          <div className="px-2 pb-2 font-mono text-[length:var(--t-2xs)] leading-relaxed text-ink-2">
+            {getErrorCode(error)}
+          </div>
+        </details>
       )}
 
       {/*

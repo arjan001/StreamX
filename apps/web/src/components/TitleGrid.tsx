@@ -208,7 +208,7 @@ export function useBrowseQuery(
  */
 export function TitleGrid({
   section, query, metrics, onStats, onClear, offered, filtered, href, replace, onPreview,
-  idListEmpty, waiting = false,
+  idListEmpty, waiting = false, aspectRatio = '2/3',
 }: {
   section: Section;
   query: BrowseQuery;
@@ -233,6 +233,11 @@ export function TitleGrid({
   idListEmpty?: { title: string; hint: string };
   /** The list itself is still being worked out (Trending): draw it loading, never empty. */
   waiting?: boolean;
+  /**
+   * CSS aspect ratio string for poster cards, e.g. '2/3' (portrait) or '3/2' (landscape).
+   * Defaults to '2/3' for standard poster cards.
+   */
+  aspectRatio?: string;
 }) {
   useEnsurePackages(section, query);
   const { total, rows, loading, error, ensureRange } = usePagedItems(section, query);
@@ -276,7 +281,7 @@ export function TitleGrid({
     return (
       <div style={{ ...rowStyle, rowGap: GRID_GAP }}>
         {Array.from({ length: cols * 3 }, (_, i) => (
-          <div key={i} className="skeleton aspect-[2/3] self-start" />
+          <div key={i} className="skeleton self-start" style={{ aspectRatio }} />
         ))}
       </div>
     );
@@ -373,7 +378,7 @@ export function TitleGrid({
             const index = rowIndex * cols + c;
             if (index >= total) return <div key={c} />;
             const item = rows.get(index);
-            if (!item) return <div key={c} className="skeleton aspect-[2/3] self-start" />;
+            if (!item) return <div key={c} className="skeleton self-start" style={{ aspectRatio }} />;
             return (
               <PosterCard
                 key={linkId(item)}
@@ -384,6 +389,7 @@ export function TitleGrid({
                 kind={kind}
                 favSection={kind}
                 artWidth={metrics.cardWidth}
+                aspectRatio={aspectRatio}
               />
             );
           })}

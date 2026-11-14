@@ -1,15 +1,14 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ChevronDown, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Search, LayoutGrid, List } from 'lucide-react';
 import { TagsRail } from '../components/TagsRail';
 import { TitleGrid, useBrowseQuery } from '../components/TitleGrid';
 import { Nothing } from '../components/Nothing';
-import { EMPTY_FILTERS, filtersFromParams, paramsFromFilters, type Filters, type QuickFilter, QUICK } from '../components/FilterBar';
+import { EMPTY_FILTERS, filtersFromParams, paramsFromFilters, type Filters } from '../components/FilterBar';
 import { typingDelay } from '../lib/typingDelay';
 import { useGridMetrics } from '../lib/useGridMetrics';
 import { useShape } from '../lib/formFactor';
 import { linkId } from '../lib/api';
-import { useTally } from '../lib/tally';
 
 /**
  * Adult content section with FilterBar-style layout matching Movies tab.
@@ -22,11 +21,14 @@ import { useTally } from '../lib/tally';
  *
  * The adult filter is bypassed when accessing this section.
  */
+/** View mode: 'covers' shows portrait cards (default), 'tiles' shows landscape cards */
+type ViewMode = 'covers' | 'tiles';
+
 export function Adult() {
   const [params, setParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedSex, setSelectedSex] = useState<string | null>(null);
-  const [chipsOpen, setChipsOpen] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('covers');
 
   const filters = useMemo(() => filtersFromParams(params), [params]);
   const setFilters = useCallback((f: Filters) => {
@@ -34,7 +36,7 @@ export function Adult() {
     setParams(p, { replace: true });
   }, [setParams]);
 
-  // Search band state — when a tag or sex is selected, set the search query
+  // Search draft state with debounce
   const [draft, setDraft] = useState(filters.q);
   useEffect(() => { setDraft(filters.q); }, [filters.q]);
   useEffect(() => {
@@ -74,24 +76,17 @@ export function Adult() {
     ...filters,
   }, undefined, true);
   const { touchScreen } = useShape();
-  const [gridRef, metrics] = useGridMetrics(168, 230, touchScreen === 'phone' ? 6 : 5);
 
-  // Stats for title count display
-  const [stats, setStats] = useState<{ total: number; loading: boolean; error: string | null }>({
-    total: 0, loading: true, error: null,
-  });
-  const onStatsCallback = useCallback(
-    (s: { total: number; loading: boolean; error: string | null }) =>
-      setStats((p) =>
-        p.total === s.total && p.loading === s.loading && p.error === s.error ? p : s,
-      ),
-    [],
-  );
+  // Grid metrics change based on view mode: covers = portrait (2:3), tiles = landscape (3:2)
+  const cardWidth = viewMode === 'tiles' ? 300 : 168;
+  const cardHeight = viewMode === 'tiles' ? 170 : 230;
+  const minCols = viewMode === 'tiles' ? 3 : (touchScreen === 'phone' ? 6 : 5);
+  const [gridRef, metrics] = useGridMetrics(cardWidth, cardHeight, minCols);
 
-  const hasActiveFilter = selectedTag || selectedSex || filters.q || filters.quick !== null;
-  const tallyOf = useTally();
+  // No-op stats callback (TitleGrid requires it, but we don't display the count in the new layout)
+  const onStatsCallback = useCallback(() => {}, []);
 
-  // Gender filter options matching the existing adult content genders
+  // Gender filter options
   const genderOptions = [
     { id: 'straight', label: 'Straight' },
     { id: 'gay', label: 'Gay' },
@@ -100,26 +95,7 @@ export function Adult() {
     { id: 'trans', label: 'Trans' },
   ];
 
-  // Pill component matching FilterBar's Pill style
-  const Pill = ({ active, onClick, children }: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 whitespace-nowrap border px-2 py-0.5 font-mono text-[length:var(--t-2xs)] transition-colors
-        touch:px-2.5 touch:py-1.5 touch:text-[length:var(--t-xs)]
-        ${active
-          ? 'border-tally bg-tally/10 text-tally'
-          : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}
-    >
-      {children}
-    </button>
-  );
-
-  // Button style matching FilterBar's destBtn
+  // Button style for view toggle
   const destBtn = (active: boolean) =>
     `dest tap flex shrink-0 items-center gap-1.5 border px-2 py-1 font-mono
      text-[length:var(--t-2xs)] tracking-wider transition-colors touch:py-2
@@ -129,105 +105,65 @@ export function Adult() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Filter bar matching Movies tab layout */}
+      {/* Filter bar with search-first layout */}
       <div className="no-round relative border-b border-rule bg-panel/60">
+        {/* Row 1: Search bar (75%) + Gender & view controls (25%) */}
         <div className="relative z-[60] flex items-center gap-2 p-[4px]">
-          {/* Filters icon button */}
+          {/* Search bar — takes 3/4 of the available space */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-3" />
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Search titles, tags…"
+              aria-label="Search adult content"
+              className="w-full border border-rule bg-panel py-1.5 pl-9 pr-8 text-[length:var(--t-sm)] text-ink
+                         placeholder:text-ink-3 focus:border-focus focus:outline-none
+                         touch:py-2.5 touch:text-[length:var(--t-md)]"
+            />
+            {draft.length > 0 && (
+              <button
+                type="button"
+                onClick={() => { setDraft(''); setFilters({ ...filters, q: '' }); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Gender select — compact dropdown on the right */}
+          <select
+            value={selectedSex ?? ''}
+            onChange={(e) => handleSexSelect(e.target.value || null)}
+            aria-label="Filter by gender"
+            className="shrink-0 border border-rule bg-panel py-1.5 px-2 text-[length:var(--t-2xs)] text-ink
+                       focus:border-focus focus:outline-none touch:py-2.5"
+          >
+            <option value="">All genders</option>
+            {genderOptions.map((g) => (
+              <option key={g.id} value={g.id}>{g.label}</option>
+            ))}
+          </select>
+
+          {/* View mode toggle */}
           <button
             type="button"
-            aria-label="Filters"
-            title="Filters"
-            onClick={() => {}}
-            className={`${destBtn(false)} px-1.5`}
+            aria-label={viewMode === 'covers' ? 'Switch to tiles view' : 'Switch to covers view'}
+            title={viewMode === 'covers' ? 'Tiles view' : 'Covers view'}
+            onClick={() => setViewMode(viewMode === 'covers' ? 'tiles' : 'covers')}
+            className={`${destBtn(false)} shrink-0 px-1.5`}
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {viewMode === 'covers' ? (
+              <List className="h-3.5 w-3.5" />
+            ) : (
+              <LayoutGrid className="h-3.5 w-3.5" />
+            )}
           </button>
-
-          {/* All pill */}
-          <Pill
-            active={!selectedSex && !selectedTag && !filters.q && !filters.quick}
-            onClick={() => {
-              setSelectedSex(null);
-              setSelectedTag(null);
-              setDraft('');
-              setFilters({ ...EMPTY_FILTERS, sort: 'default', dir: 'asc' });
-            }}
-          >
-            All
-          </Pill>
-
-          {/* Just added & Top rated quick filters */}
-          {QUICK.map((qf) => (
-            <Pill
-              key={qf.id}
-              active={filters.quick === qf.id}
-              onClick={() => setFilters({ ...filters, quick: filters.quick === qf.id ? null : qf.id })}
-            >
-              {qf.label}
-            </Pill>
-          ))}
-
-          {/* Title count */}
-          <span
-            aria-live="polite"
-            className="shrink-0 whitespace-nowrap font-mono text-[length:var(--t-2xs)] text-ink-2"
-          >
-            {stats.loading ? '…'
-              : tallyOf(offered ?? 0) === null ? ''
-                : `${tallyOf(offered ?? 0)} ${offered === 1 ? 'title' : 'titles'}`}
-          </span>
-
-          {/* Reset button when filters are active */}
-          {hasActiveFilter && (
-            <button
-              type="button"
-              aria-label="Reset filters"
-              title="Reset filters"
-              onClick={() => {
-                setSelectedSex(null);
-                setSelectedTag(null);
-                setDraft('');
-                setFilters({ ...EMPTY_FILTERS, sort: 'default', dir: 'asc' });
-              }}
-              className={destBtn(false)}
-            >
-              <RotateCcw className="h-3 w-3" />
-              <span>Reset</span>
-            </button>
-          )}
-
-          {/* Gender toggle button (replaces Genres) */}
-          <button
-            type="button"
-            aria-expanded={chipsOpen}
-            aria-label={chipsOpen ? 'Hide genders' : 'Show genders'}
-            onClick={() => setChipsOpen(!chipsOpen)}
-            className={destBtn(chipsOpen || (selectedSex !== null))}
-          >
-            <span>Gender{selectedSex ? ' · 1' : ''}</span>
-            <ChevronDown className={`h-3 w-3 transition-transform ${chipsOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {/* Horizontal scrolling gender chips */}
-          {chipsOpen && (
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
-              {genderOptions.map((gender) => {
-                const isSelected = selectedSex === gender.id;
-                return (
-                  <Pill
-                    key={gender.id}
-                    active={isSelected}
-                    onClick={() => handleSexSelect(isSelected ? null : gender.id)}
-                  >
-                    {gender.label}
-                  </Pill>
-                );
-              })}
-            </div>
-          )}
         </div>
 
-        {/* Tags rail - horizontal scrolling tags below filter strip */}
+        {/* Row 2: Tags rail below */}
         <div className="flex items-center gap-1.5 border-t border-rule/50 px-3 py-1.5 overflow-x-auto">
           <span className="shrink-0 font-mono text-[length:var(--t-2xs)] uppercase tracking-wider text-ink-3">
             Tags
@@ -256,8 +192,9 @@ export function Adult() {
               onStats={onStatsCallback}
               onClear={() => setFilters(EMPTY_FILTERS)}
               offered={offered}
-              filtered={filters.q !== '' || filters.categoryId != null || !!selectedTag || !!selectedSex || !!filters.quick}
+              filtered={filters.q !== '' || filters.categoryId != null || !!selectedTag || !!selectedSex}
               href={(it) => `/movie/${linkId(it)}?from=adult`}
+              aspectRatio={viewMode === 'tiles' ? '3/2' : '2/3'}
             />
           )}
         </div>

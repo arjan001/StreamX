@@ -197,11 +197,36 @@ function Submit({ ready, busy, label }: { ready: boolean; busy: boolean; label: 
 
 function ErrorLine({ text }: { text: string | null }) {
   if (text === null) return null;
+  const code = getAddSourceCode(text);
   return (
-    <p role="alert" className="mt-2 border border-alert/60 bg-alert/10 p-2 text-[length:var(--t-xs)] text-alert">
-      {text}
-    </p>
+    <div>
+      <p role="alert" className="mt-2 border border-alert/60 bg-alert/10 p-2 text-[length:var(--t-xs)] text-alert">
+        {text}
+      </p>
+      <details className="mt-1 rounded border border-rule/50 bg-panel/50">
+        <summary className="cursor-pointer px-2 py-1 font-mono text-[length:var(--t-2xs)] text-ink-3 hover:text-ink">
+          Error details
+        </summary>
+        <div className="px-2 pb-2 font-mono text-[length:var(--t-2xs)] leading-relaxed text-ink-2">
+          {code}
+        </div>
+      </details>
+    </div>
   );
+}
+
+function getAddSourceCode(message: string): React.ReactNode {
+  const msg = message.toLowerCase();
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('reach')) {
+    return <div><strong>Code: N001</strong> — Network error. Check your internet connection and the URL.</div>;
+  }
+  if (msg.includes('parse') || msg.includes('format') || msg.includes('invalid')) {
+    return <div><strong>Code: N002</strong> — Invalid format. The URL may not point to a valid playlist or stream.</div>;
+  }
+  if (msg.includes('timeout')) {
+    return <div><strong>Code: N003</strong> — Request timed out. The server is slow to respond; try again.</div>;
+  }
+  return <div><strong>Code: N999</strong> — Unknown error. Check the URL and try again.</div>;
 }
 
 function PlaylistForm({ onAdded, terms, agreed }: FormProps) {

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { ChevronRight, Layers, Search as SearchIcon, Tag } from 'lucide-react';
+import { ChevronRight, Film, Layers, Search as SearchIcon, Tag, Tv, Tv2, User } from 'lucide-react';
 import { Poster } from '../components/Poster';
 import { HScroll } from '../components/HScroll';
 import { useKeyLayer, type Binding } from '../lib/keys';
@@ -14,6 +14,7 @@ import { sectionForPath } from '../lib/sections';
 import { listArt } from '../lib/listArt';
 import { typingDelay } from '../lib/typingDelay';
 import { useOkToType } from '../lib/okToType';
+import { localSearchSuggestions } from '../lib/localRead';
 import {
   filterByGenres, filterByPeople, itemCategoryLabel, itemSearchBlurb,
   searchFacets, type SearchGenre, type SearchPerson,
@@ -110,10 +111,62 @@ export function Search() {
   const [draft, setDraft] = useState(q);
   /* Focus parks, OK types — one rule for every field, see `lib/okToType.ts`. */
   const ok = useOkToType();
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setDraft(q), [q]);
 
   useEffect(() => { warmSearchIndex(); }, []);
+
+  /*
+   * Autocomplete suggestions: computed synchronously on every draft change.
+   * The underlying `search` call is 4–8 ms, so it never blocks a keystroke.
+   * Only shown when the input is focused and the query is at least 2 chars.
+   */
+  const suggestions = useMemo(() => {
+    const t = draft.trim();
+    if (t.length < 2) return [];
+    return localSearchSuggestions(t, 8);
+  }, [draft]);
+
+  const handleDraftChange = useCallback((value: string) => {
+    setDraft(value);
+    setShowSuggestions(true);
+  }, []);
+
+  const handleSuggestionClick = useCallback((name: string, type?: string) => {
+    setDraft(name);
+    setShowSuggestions(false);
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('q', name);
+      next.delete('genre');
+      if (type === 'actor') {
+        // When clicking an actor suggestion, filter by that person
+        const folded = name.toLowerCase().trim();
+        next.set('person', folded);
+      } else {
+        next.delete('person');
+      }
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  const handleInputFocus = useCallback(() => {
+    setShowSuggestions(true);
+  }, []);
+
+  const handleInputBlur = useCallback(() => {
+    /* Delay to allow clicking a suggestion before the dropdown closes. */
+    setTimeout(() => setShowSuggestions(false), 150);
+  }, []);
+
+  const suggestionIcon = (type: string) => {
+    if (type === 'channel') return <Tv className="h-3.5 w-3.5 shrink-0 text-ink-3" />;
+    if (type === 'movie') return <Film className="h-3.5 w-3.5 shrink-0 text-ink-3" />;
+    if (type === 'series') return <Tv2 className="h-3.5 w-3.5 shrink-0 text-ink-3" />;
+    return <User className="h-3.5 w-3.5 shrink-0 text-ink-3" />;
+  };
 
   /*
    * The clock "on air right now" is read against.
@@ -354,10 +407,13 @@ export function Search() {
           className="relative mb-5"
           onSubmit={(e) => {
             e.preventDefault();
+            setShowSuggestions(false);
             if (draft.trim().length >= 2) {
               setParams((prev) => {
                 const next = new URLSearchParams(prev);
                 next.set('q', draft.trim());
+                next.delete('person');
+                next.delete('genre');
                 return next;
               }, { replace: true });
             }
@@ -378,7 +434,12 @@ export function Search() {
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
           <input
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => handleDraftChange(e.target.value)}
+            onFocus={handleInputFocus}
+            onBlur={(e) => {
+              ok.props.onBlur(e);
+              handleInputBlur();
+            }}
             autoFocus={q === ''}
             enterKeyHint="search"
             inputMode="search"
@@ -388,11 +449,44 @@ export function Search() {
             spellCheck={false}
             aria-label="Search"
             placeholder="Titles, people, channels…"
-            {...ok.props}
+            data-ok-to-type="typing"
+            onKeyDown={ok.props.onKeyDown}
+            onPointerDown={ok.props.onPointerDown}
             className="w-full border border-rule bg-panel py-3 pl-10 pr-3 text-[length:var(--t-md)] text-ink
                        placeholder:text-ink-3 focus:border-focus focus:outline-none
                        tv:py-4 tv:pl-12 tv:text-[length:var(--t-lg)]"
           />
+
+          {/* Autocomplete suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div
+              ref={suggestionsRef}
+              className="absolute left-0 right-0 top-full z-50 mt-1 border border-rule bg-panel/95 backdrop-blur-md shadow-[0_8px_24px_-12px_rgb(0_0_0/.55)] overflow-hidden"
+            >
+              <div className="px-2 py-1.5">
+                <p className="font-mono text-[length:var(--t-2xs)] tracking-widest text-ink-3">
+                  Suggestions
+                </p>
+              </div>
+              {suggestions.map((s, i) => (
+                <button
+                  key={`${s.type}-${s.name}-${i}`}
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => handleSuggestionClick(s.name, s.type)}
+                  className="tap flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-panel/80"
+                >
+                  {suggestionIcon(s.type)}
+                  <span className="truncate text-[length:var(--t-sm)] text-ink">
+                    {s.name}
+                  </span>
+                  <span className="ml-auto shrink-0 font-mono text-[length:var(--t-2xs)] text-ink-3 capitalize">
+                    {s.type}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </form>
 
         {q.length >= 2 && data?.corrected === true && !isPlaceholderData && (

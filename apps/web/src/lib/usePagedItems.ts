@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type Item, type Section, type SortKey } from './api';
+import { api, type Hidden, type Item, type Section, type SortKey } from './api';
+import { scopeKey } from './groups';
+import { getPrefs, usePrefs } from './prefs';
 
 /** Page size — a reference IPTV app uses 30; 40 is one screenful of a dense grid. */
 const PAGE = 40;
@@ -98,6 +100,108 @@ export function forgetPagedLists(): void {
   MEM.clear();
   revision += 1;
   for (const fn of revisionSubs) fn();
+}
+
+/**
+ * Build the same cache key the hook uses, so a prefetched page lands in the
+ * right slot. Mirrors the key array in `usePagedItems` exactly.
+ */
+function buildKey(section: Section, query: PagedQuery): string {
+  return [
+    section, query.categoryId ?? '', query.sort, query.dir, query.q,
+    query.yearFrom ?? '', query.yearTo ?? '', query.minRating ?? '', query.addedSince ?? '',
+    query.oneCopy ? 1 : '',
+    query.archiveOnly ? 1 : '',
+    query.genre ?? '', query.region ?? '', query.source ?? '', query.path ?? '',
+    (query.paths ?? []).join('+'),
+    (query.markets ?? []).join('+'),
+    (query.genres ?? []).join('+'),
+    (query.cats ?? []).join('+'),
+    (query.hidePaths ?? []).join('+'),
+    (query.hideCats ?? []).join('+'),
+    (query.hideCatRefs ?? []).join('+'),
+    (query.hideStreams ?? []).join('+'),
+    (query.streamIds ?? []).join(','),
+    query.excludeTopic ?? '',
+    query.adultOnly ? '1' : '',
+    revision,
+  ].join('|');
+}
+
+/**
+ * Pre-fetch the first page of a section's default listing and seed the MEM
+ * cache so the first navigation paints rows instead of a skeleton.
+ *
+ * Returns immediately when a fresh cache entry already exists.
+ */
+export async function prefetchList(section: Section, query: PagedQuery): Promise<void> {
+  const key = buildKey(section, query);
+  const existing = MEM.get(key);
+  if (existing !== undefined && Date.now() - existing.at < MEM_TTL_MS) return;
+  try {
+    const page = await api.items(section, { ...query, offset: 0, limit: PAGE });
+    const rows = new Map<number, Item>();
+    page.rows.forEach((r, i) => rows.set(i, r));
+    remember(key, { total: page.total, rows, at: Date.now() });
+  } catch {
+    /* Silently skip — the catalogue may not be ready yet, or the section
+       may be empty. The hook will fetch normally when it mounts. */
+  }
+}
+
+/**
+ * Warm all four major tabs so the first navigation paints instantly.
+ *
+ * Called once after the library becomes ready. Each section is fetched
+ * sequentially (not in parallel) to avoid saturating the main thread on
+ * a large catalogue. Errors are swallowed — a missing section is normal
+ * for some subscriptions.
+ *
+ * `qc` is the app's QueryClient; pass it so react-query metadata
+ * (categories, groups, markets) is also pre-fetched alongside the
+ * paged items. When called without a client, only the paged items
+ * cache is warmed.
+ */
+export async function prefetchAllTabs(qc?: { prefetchQuery: (opts: { queryKey: unknown[]; queryFn: () => Promise<unknown>; staleTime?: number }) => Promise<void> }): Promise<void> {
+  const sections: Section[] = ['live', 'movies', 'series'];
+  const defaultQueries: Record<Section, PagedQuery> = {
+    live: { categoryId: null, sort: 'default', dir: 'asc', q: '' },
+    movies: { categoryId: null, sort: 'added', dir: 'desc', q: '' },
+    series: { categoryId: null, sort: 'added', dir: 'desc', q: '' },
+  };
+  /* Build the scope the tabs actually use, so react-query keys match. */
+  const prefs = getPrefs();
+  const scope: Hidden = {
+    hidePaths: prefs.hidePaths,
+    hideCats: prefs.hideCats,
+    hideCatRefs: prefs.hideCatRefs,
+    hideStreams: prefs.hideStreams,
+  };
+  const sk = scopeKey(scope);
+  for (const section of sections) {
+    await prefetchList(section, defaultQueries[section]);
+    /* Also warm the react-query metadata each tab reads on mount:
+       categories, groups, and markets — the filter bar, sidebar, and
+       country picker. */
+    if (qc) {
+      const staleTime = 5 * 60_000;
+      void qc.prefetchQuery({
+        queryKey: ['categories', section, sk],
+        queryFn: () => api.categories(section, scope),
+        staleTime,
+      });
+      void qc.prefetchQuery({
+        queryKey: ['groups', section, sk],
+        queryFn: () => api.groups(section, scope),
+        staleTime,
+      });
+      void qc.prefetchQuery({
+        queryKey: ['markets', section, sk],
+        queryFn: () => api.markets(section, scope),
+        staleTime,
+      });
+    }
+  }
 }
 
 function useListRevision(): number {

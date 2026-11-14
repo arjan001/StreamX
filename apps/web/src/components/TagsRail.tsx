@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { localAllItems } from '../lib/localRead';
 import { useScope } from '../lib/scope';
-import { aggregateTags } from '../lib/adult';
+import { aggregateTags, extractTagsFromTitle, extractTagsFromDescription } from '../lib/adult';
 
 export interface Tag {
   id: string;
@@ -32,13 +32,20 @@ export function TagsRail({ onTagSelect, selectedTags }: {
   const { data: tags, isLoading } = useQuery({
     queryKey: ['adult-tags', scope],
     queryFn: async (): Promise<Tag[]> => {
-      const items = localAllItems('movies', { ...scope, limit: 500 });
+      // Fetch adult items with adultOnly flag to get all adult content
+      const items = localAllItems('movies', { ...scope, adultOnly: true, limit: 1000 });
       if (items.length === 0) return [];
 
-      const batchSize = 10;
-      const itemsWithTags: Array<{ tags?: readonly string[] }> = [];
+      // Phase 1: Extract tags from titles synchronously — no API calls needed
+      const titleTagItems: Array<{ tags?: readonly string[] }> = items.map(item => ({
+        tags: extractTagsFromTitle(item.name ?? ''),
+      }));
 
-      for (let i = 0; i < Math.min(items.length, 100); i += batchSize) {
+      // Phase 2: Fetch detail for a subset to get plot description tags + API tags
+      const batchSize = 10;
+      const detailTagItems: Array<{ tags?: readonly string[] }> = [];
+
+      for (let i = 0; i < Math.min(items.length, 300); i += batchSize) {
         const batch = items.slice(i, i + batchSize);
         const results = await Promise.allSettled(
           batch.map(item => api.movieDetail(item.id))
@@ -47,6 +54,13 @@ export function TagsRail({ onTagSelect, selectedTags }: {
           if (result.status === 'fulfilled' && result.value?.detail) {
             const detail = result.value.detail;
             const tagList: string[] = [];
+
+            // Extract tags from plot description
+            if (detail.plot) {
+              tagList.push(...extractTagsFromDescription(detail.plot));
+            }
+
+            // Include API-provided genres, country, year, cast
             if (detail.genres?.length) {
               tagList.push(...detail.genres);
             }
@@ -64,11 +78,14 @@ export function TagsRail({ onTagSelect, selectedTags }: {
                 }
               }
             }
-            itemsWithTags.push({ tags: tagList });
+            detailTagItems.push({ tags: tagList });
           }
         }
       }
-      return aggregateTags(itemsWithTags);
+
+      // Combine all tag sources: titles (all items) + details (sampled items)
+      const allItems = [...titleTagItems, ...detailTagItems];
+      return aggregateTags(allItems);
     },
     staleTime: 10 * 60_000,
     enabled,
@@ -136,7 +153,8 @@ export function SexFilterRail({ onSexSelect, selectedSex }: {
   const { data: sexFilters, isLoading } = useQuery({
     queryKey: ['adult-sex-filters', scope],
     queryFn: async (): Promise<Array<{ id: string; name: string; count: number }>> => {
-      const items = localAllItems('movies', { ...scope, limit: 200 });
+      // Fetch adult items with adultOnly flag
+      const items = localAllItems('movies', { ...scope, adultOnly: true, limit: 500 });
       if (items.length === 0) {
         return [
           { id: 'straight', name: 'Straight', count: 0 },
@@ -150,7 +168,8 @@ export function SexFilterRail({ onSexSelect, selectedSex }: {
       const sexCounts = new Map<string, number>();
       const batchSize = 10;
 
-      for (let i = 0; i < Math.min(items.length, 50); i += batchSize) {
+      // Fetch detail for more items to get better sex filter coverage
+      for (let i = 0; i < Math.min(items.length, 200); i += batchSize) {
         const batch = items.slice(i, i + batchSize);
         const results = await Promise.allSettled(
           batch.map(item => api.movieDetail(item.id))

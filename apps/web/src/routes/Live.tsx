@@ -1523,6 +1523,7 @@ export function Live({ sports = false }: { sports?: boolean } = {}) {
 
   const surface = (
     <VideoPlayer
+      forceCover={sports}
       onRetry={current ? () => void open(current) : undefined}
       onBufferChange={current ? () => void open(current) : undefined}
       streamKey={current ? (current.ref ?? `1.${current.id}`) : null}

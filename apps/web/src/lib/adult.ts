@@ -159,6 +159,105 @@ function capitalizeWords(str: string): string {
 }
 
 /**
+ * Known adult-related keywords to extract as tags from titles and descriptions.
+ * These are common words found in adult content metadata that serve as useful
+ * filter tags for users browsing the adult section.
+ */
+const ADULT_KEYWORDS = [
+  // Hair & appearance
+  'blonde', 'brunette', 'redhead', 'black hair', 'dye',
+  // Body type
+  'busty', 'petite', 'curvy', 'skinny', 'athletic', 'thick', 'slim', 'voluptuous', ' bbw',
+  // Age & role
+  'milf', 'mature', 'cougar', 'teen', 'young', 'older', 'amateur',
+  // Ethnicity
+  'asian', 'latina', 'black', 'white', 'interracial', 'ebony', 'hispanic',
+  // Scenarios
+  'threesome', 'cuckold', 'gangbang', 'pov', 'public', 'outdoor', 'office',
+  'hotel', 'massage', 'casting', 'cosplay', 'fetish', 'hardcore', 'rough',
+  'creampie', 'squirt', 'anal', 'oral', 'facial', 'fisting',
+  'first time', 'neighbor', 'teacher', 'nurse', 'maid', 'secretary',
+  'student', 'boss', 'wife', 'husband', 'girlfriend', 'boyfriend',
+  'stepmom', 'stepdad', 'mom', 'dad',
+  // Settings
+  'shower', 'bedroom', 'kitchen', 'bathroom', 'pool', 'beach', 'park',
+  'car', 'taxi', 'bus', 'elevator', 'gym', 'club', 'bar', 'garage',
+  'motel', 'boat', 'forest', 'garden', 'street', 'vacation',
+  'wedding', 'party', 'christmas', 'halloween',
+  // Types
+  'gay', 'lesbian', 'bisexual', 'trans', 'swinger', 'orgy', 'foursome',
+  'mmf', 'ffm', 'group', 'solo', 'webcam', 'homemade', 'voyeur',
+  'selfie', 'roleplay', 'incest', 'family',
+  // Attributes
+  'tattooed', 'pierced', 'lingerie', 'stockings', 'uniform', 'high heels',
+  'naked', 'barefoot', 'glasses', 'big tits', 'small tits',
+  'long hair', 'short hair',
+  // Quality & style
+  'romantic', 'slow', 'fast', 'intense', 'passionate', 'tender',
+  'dirty talk', 'creampie', 'cumshot', 'deepthroat',
+];
+
+/**
+ * Extract adult-related tags from a movie title string.
+ * Splits the title into words and matches against known adult keywords.
+ */
+export function extractTagsFromTitle(title: string): string[] {
+  if (!title) return [];
+  const lower = title.toLowerCase();
+  const tags = new Set<string>();
+
+  // Check multi-word keywords first (longer matches take priority)
+  for (const keyword of ADULT_KEYWORDS) {
+    if (keyword.includes(' ') && lower.includes(keyword)) {
+      tags.add(keyword);
+    }
+  }
+
+  // Then check single-word keywords
+  const words = lower.split(/[\s\-_(),.]+/);
+  for (const word of words) {
+    const clean = word.trim();
+    if (clean.length < 3) continue;
+    for (const keyword of ADULT_KEYWORDS) {
+      if (!keyword.includes(' ') && clean === keyword) {
+        tags.add(keyword);
+      }
+    }
+  }
+
+  return [...tags];
+}
+
+/**
+ * Extract adult-related tags from a movie plot/description string.
+ * Searches for known adult keywords in the description text.
+ */
+export function extractTagsFromDescription(description: string): string[] {
+  if (!description) return [];
+  const lower = description.toLowerCase();
+  const tags = new Set<string>();
+
+  for (const keyword of ADULT_KEYWORDS) {
+    if (lower.includes(keyword)) {
+      tags.add(keyword);
+    }
+  }
+
+  return [...tags];
+}
+
+/**
+ * Extract all adult-related tags from a movie's title and description.
+ * Combines tags from both sources, deduplicating and returning a sorted list.
+ */
+export function extractAllTags(title: string, description?: string): string[] {
+  const titleTags = extractTagsFromTitle(title);
+  const descTags = description ? extractTagsFromDescription(description) : [];
+  const all = new Set([...titleTags, ...descTags]);
+  return [...all].sort();
+}
+
+/**
  * Get initials from a name (e.g., "John Doe" -> "JD").
  */
 export function getInitials(name: string): string {

@@ -218,9 +218,18 @@ const BUILD = (import.meta.env?.VITE_APP_BUILD as string | undefined) ?? '';
 const NATIVE = (import.meta.env?.VITE_PLATFORM as string | undefined) === 'capacitor';
 const API_ORIGIN = (import.meta.env?.VITE_API_ORIGIN as string | undefined) ?? '';
 
-// Debug: log the beta mode and API origin at startup
+// Debug: log the beta mode and API origin at startup — critical for diagnosing why logs don't arrive
 if (typeof window !== 'undefined') {
-  console.log('[errorReports] IS_BETA:', NATIVE && BUILD !== '', 'NATIVE:', NATIVE, 'BUILD:', BUILD, 'API_ORIGIN:', API_ORIGIN);
+  const isBeta = NATIVE && BUILD !== '';
+  console.log('[errorReports] Startup diagnostics:');
+  console.log('[errorReports]   NATIVE (capacitor):', NATIVE);
+  console.log('[errorReports]   BUILD number:', BUILD);
+  console.log('[errorReports]   IS_BETA (auto-enable logs):', isBeta);
+  console.log('[errorReports]   API_ORIGIN (log endpoint base):', API_ORIGIN || '(EMPTY — logs will NOT reach the server!)');
+  console.log('[errorReports]   VERSION:', VERSION);
+  if (NATIVE && API_ORIGIN === '') {
+    console.error('[errorReports] CRITICAL: APK built without VITE_API_ORIGIN! Logs cannot reach the server. Rebuild with STREAMIX_API_ORIGIN=https://dev.lovix.com');
+  }
 }
 
 /* ── the live half ─────────────────────────────────────────────────────────── */
@@ -306,16 +315,24 @@ export async function flush(): Promise<boolean> {
   for (const q of batch) lastSent.set(signature(q.tag, q.text), now);
   try {
     const url = apiUrl('/api/log/batch');
-    console.log('[errorReports] Flushing', batch.length, 'errors to', url);
+    console.log('[errorReports] Flushing', batch.length, 'entries to', url);
+    console.log('[errorReports]   API_ORIGIN used:', API_ORIGIN || '(EMPTY — relative URL!)');
+    const body = flushBody(batch, Date.now());
+    console.log('[errorReports]   deviceId:', body.deviceId, 'platform:', body.platform, 'version:', body.version);
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(flushBody(batch, Date.now())),
+      body: JSON.stringify(body),
     });
-    console.log('[errorReports] Flush response:', res.status, res.ok);
+    console.log('[errorReports] Flush response:', res.status, res.ok ? 'OK' : 'FAILED');
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.log('[errorReports] Server response body:', text.slice(0, 200));
+    }
     return res.ok;
   } catch (e) {
-    console.log('[errorReports] Flush failed:', e);
+    console.error('[errorReports] Flush network error:', e);
+    console.error('[errorReports]   This usually means the API_ORIGIN is not set correctly in the APK build.');
     /*
      * Dropped, deliberately, rather than put back.
      *
@@ -348,11 +365,13 @@ export function installErrorReports(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
 
-  console.log('[errorReports] installErrorReports called, IS_BETA:', IS_BETA);
+  console.log('[errorReports] installErrorReports called');
+  console.log('[errorReports]   IS_BETA:', IS_BETA, '(NATIVE:', NATIVE, 'BUILD:', BUILD + ')');
+  console.log('[errorReports]   API_ORIGIN for flush:', API_ORIGIN || '(EMPTY — flush will fail!)');
 
   // Beta mode: always enable error reporting for client monitoring
   if (IS_BETA) {
-    console.log('[errorReports] Beta mode: enabling error reports');
+    console.log('[errorReports] Beta mode: enabling error reports automatically');
     setErrorReportsEnabled(true);
   }
 

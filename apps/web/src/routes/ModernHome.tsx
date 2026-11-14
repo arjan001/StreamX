@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Clapperboard, Film, Heart, History, Trophy, Tv,
+  Clapperboard, Film, History, Trophy, Tv,
 } from 'lucide-react';
 import type { Inventory } from '../lib/api';
 import { hasSection } from '../lib/sections';
@@ -58,13 +58,6 @@ function tiles(inv: Inventory | null) {
       note: 'Binge Favourites',
     },
     {
-      id: 'adult',
-      to: '/adult',
-      label: 'Adult',
-      Icon: Heart,
-      note: '18+ Content',
-    },
-    {
       id: 'catchup',
       to: '/catchup',
       label: 'Replay',
@@ -119,7 +112,7 @@ export function ModernHome({ inv }: { inv: Inventory | null }) {
             and ends where they do. The row sits in a zero-width cell stretched
             to the column: it scrolls inside the cards' width instead of
             widening the column to fit every tile. */}
-        <div className="grid w-fit max-w-full gap-4 tv:gap-5">
+        <div className="grid w-fit max-w-full gap-3 tv:gap-4">
           {/*
             Five cards, not four — one column narrower each so the row still
             fits the television's own 960px: five 134px cards plus four 24px

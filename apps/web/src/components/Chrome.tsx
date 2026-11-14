@@ -82,7 +82,6 @@ const TABS = [
   { to: '/movies', label: 'Movies', Icon: Clapperboard },
   { to: '/series', label: 'Series', Icon: Tv2 },
   { to: '/guide', label: 'Guide', Icon: CalendarClock },
-  { to: '/adult', label: 'Adult', Icon: Heart },
   { to: '/catchup', label: 'Catch-up', Icon: History },
 ] as const;
 
@@ -139,7 +138,6 @@ const MODERN_HEADER_TABS = [
   { to: '/sports', label: 'Sports TV', Icon: Trophy },
   { to: '/movies', label: 'Movies', Icon: Clapperboard },
   { to: '/series', label: 'Series', Icon: Tv2 },
-  { to: '/adult', label: 'Adult', Icon: Heart },
   { to: '/catchup', label: 'Catch-up', Icon: History },
 ] as const;
 
@@ -1659,24 +1657,24 @@ export function Chrome({ children }: { children: React.ReactNode }) {
            attribute in a parallel edit and the test caught it, which is the test
            doing exactly its job. */
         data-nav-scope
-        className={`app-header z-40 flex flex-wrap items-center gap-2 border-b px-2 pb-2
+        className={`app-header z-40 flex flex-wrap items-center gap-2 px-2 pb-2
                    pt-[calc(var(--edge-t)+0.5rem)]
                    sm:gap-3 sm:px-4 sm:pb-2.5 sm:pt-[calc(var(--edge-t)+0.625rem)] xl:gap-4
                    tv:flex-nowrap tv:px-[var(--tv-safe-x)]
                    tv:pb-1.5 tv:pt-[calc(var(--edge-t)+0.375rem)]
-                   transition-[background-color,border-color,box-shadow,backdrop-filter] duration-200
+                   transition-[background-color,box-shadow,backdrop-filter] duration-200
                    ${modern ? 'rounded-none!' : ''}
                    ${overlayActive
                      ? `absolute inset-x-0 top-0 shrink-0 ${
                          heroScrolled
                            ? (modern
-                             ? 'border-transparent bg-ground/50 backdrop-blur-sm'
-                             : 'border-rule bg-panel/95 shadow-[0_8px_24px_-12px_rgb(0_0_0/.55)] backdrop-blur-md')
-                           : 'border-rule/40 bg-transparent'
+                             ? 'bg-ground/50 backdrop-blur-sm'
+                             : 'bg-panel/95 shadow-[0_8px_24px_-12px_rgb(0_0_0/.55)] backdrop-blur-md')
+                           : 'bg-transparent'
                        }`
                      : modern
-                       ? 'relative shrink-0 border-transparent bg-transparent shadow-none'
-                       : `relative shrink-0 border-rule bg-gradient-to-b from-panel-2 to-panel
+                       ? 'relative shrink-0 bg-transparent shadow-none'
+                       : `relative shrink-0 bg-gradient-to-b from-panel-2 to-panel
                         shadow-[0_6px_18px_-14px_rgb(0_0_0/.45)]
                         tv:bg-gradient-to-b tv:from-ground tv:via-ground/85 tv:to-ground/70`
                    }`}
@@ -1873,6 +1871,9 @@ export function Chrome({ children }: { children: React.ReactNode }) {
               <Settings2 className="h-5 w-5" />
             </Link>
           )}
+          <Link to="/adult" aria-label="Adult" className={MODERN_ICON}>
+            <Heart className="h-5 w-5" />
+          </Link>
           {modern ? (
             <button
               type="button"

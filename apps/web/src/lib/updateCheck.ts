@@ -3,8 +3,8 @@
  *
  * Fetches the latest stable release from the GitHub API, compares it with the
  * current app version, and returns release info if a newer version is available.
- * Dismissed versions are remembered via localStorage so the same update isn't
- * shown repeatedly.
+ * Dismissed versions are remembered via localStorage with a 1-hour expiry so the
+ * same update reappears periodically until the user installs it.
  *
  * The GitHub API is public and rate-limited at 60/hour unauthenticated, which
  * is sufficient for app boot checks. A 5-second timeout prevents blocking the
@@ -13,6 +13,9 @@
 
 const GITHUB_REPO = 'arjan001/StreamX';
 const DISMISS_PREFIX = 'update.dismissed.';
+
+/** Dismissed versions reappear after this many milliseconds (1 hour). */
+const DISMISS_EXPIRY_MS = 60 * 60 * 1000;
 
 /** The current app version, stamped at build time. */
 const CURRENT_VERSION = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? '';
@@ -47,21 +50,31 @@ function compareVersion(a: string, b: string): number {
 
 /**
  * Check if a version was previously dismissed by the user.
+ * Returns false if the dismissal has expired (1 hour has passed), so the
+ * modal reappears periodically until the user installs the update.
  */
 export function isDismissed(version: string): boolean {
   try {
-    return localStorage.getItem(`${DISMISS_PREFIX}v${version}`) === '1';
+    const ts = localStorage.getItem(`${DISMISS_PREFIX}v${version}`);
+    if (ts === null || ts === '1') {
+      // Legacy '1' value or missing — treat as not dismissed so it shows again
+      return false;
+    }
+    const dismissedAt = Number(ts);
+    if (Number.isNaN(dismissedAt)) return false;
+    // Return true only if less than DISMISS_EXPIRY_MS has passed
+    return Date.now() - dismissedAt < DISMISS_EXPIRY_MS;
   } catch {
     return false;
   }
 }
 
 /**
- * Mark a version as dismissed so it won't be shown again.
+ * Mark a version as dismissed with a timestamp so it reappears after 1 hour.
  */
 export function dismissVersion(version: string): void {
   try {
-    localStorage.setItem(`${DISMISS_PREFIX}v${version}`, '1');
+    localStorage.setItem(`${DISMISS_PREFIX}v${version}`, String(Date.now()));
   } catch {
     // Storage full or unavailable — silently fail
   }
@@ -97,9 +110,49 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
     // Compare versions — only show if the release is newer
     if (compareVersion(releaseVersion, CURRENT_VERSION) <= 0) return null;
 
-    // Skip if the user already dismissed this version
+    // Skip if the user already dismissed this version (within expiry window)
     if (isDismissed(releaseVersion)) return null;
 
+    return {
+      version: releaseVersion,
+      body: (data.body as string | undefined) ?? '',
+      html_url: (data.html_url as string | undefined) ?? `https://github.com/${GITHUB_REPO}/releases/latest`,
+    };
+  } catch {
+    // Network error, timeout, or parse error — silently fail
+    return null;
+  }
+}
+
+/**
+ * Force check for updates, ignoring any previous dismissal.
+ * Used by the "Check for updates" button in Settings → About so the user
+ * always sees the modal when they manually request it.
+ */
+export async function forceCheckForUpdate(): Promise<ReleaseInfo | null> {
+  // Development builds don't check for updates
+  if (CURRENT_VERSION === '') return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+      { signal: controller.signal },
+    );
+    window.clearTimeout(timeout);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const tag = (data.tag_name as string | undefined) ?? '';
+    const releaseVersion = tag.replace(/^v/, '');
+
+    // Compare versions — only show if the release is newer
+    if (compareVersion(releaseVersion, CURRENT_VERSION) <= 0) return null;
+
+    // Skip dismiss check — user explicitly requested this check
     return {
       version: releaseVersion,
       body: (data.body as string | undefined) ?? '',

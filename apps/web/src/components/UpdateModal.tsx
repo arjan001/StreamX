@@ -32,8 +32,8 @@ export function UpdateModal({
   if (release === null) return null;
 
   const card = modern
-    ? 'welcome-card glass-float tally-glow is-on w-full max-w-[26rem] p-5 tv:p-6'
-    : 'card w-full max-w-[26rem] border border-rule bg-panel p-5 shadow-lg tv:p-6';
+    ? 'welcome-card glass-float tally-glow is-on w-full max-w-[26rem] tv:max-w-[36rem] p-5 tv:p-6'
+    : 'card w-full max-w-[26rem] tv:max-w-[36rem] border border-rule bg-panel p-5 shadow-lg tv:p-6';
   const button = 'card card-hover tap mt-3 flex w-full items-center justify-center gap-3'
     + ' border border-rule px-4 py-3 text-center tv:py-3.5';
 

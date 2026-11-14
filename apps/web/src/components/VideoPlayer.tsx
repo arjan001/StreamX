@@ -642,6 +642,9 @@ export function VideoPlayer({
   onLiveMode,
   screenFilled,
   nowPlaying,
+  /** Force the video to cover the full container, eliminating letterbox bars.
+      Used by the sports view so the pitch fills the screen. */
+  forceCover = false,
 }: {
   className?: string;
   onRetry?: () => void;
@@ -741,6 +744,8 @@ export function VideoPlayer({
    * caption asking for a choice already made.
    */
   idleHint?: string;
+  /** Force the video to cover the full container, eliminating letterbox bars. */
+  forceCover?: boolean;
   /**
    * The CALLER already fills the screen around this player — MovieDetail's and
    * SeriesDesk's own full-cover portals (`fixed inset-0 z-50`), not Live's or
@@ -2203,7 +2208,7 @@ export function VideoPlayer({
     return () => { void setImmersive(false); };
   }, [full]);
 
-  const objectFit = s.aspect === 'cover' ? 'cover' : s.aspect === 'fill' ? 'fill' : 'contain';
+  const objectFit = forceCover ? 'cover' : (s.aspect === 'cover' ? 'cover' : s.aspect === 'fill' ? 'fill' : 'contain');
   const forcedRatio = s.aspect === '16:9' ? '16 / 9' : s.aspect === '4:3' ? '4 / 3' : undefined;
 
   /* Idle draws no bar: a seek track and eight buttons under "pick a channel"
@@ -2425,7 +2430,7 @@ export function VideoPlayer({
         the sampler already smooths between reads, and 600ms of CSS on top means
         even a hard cut arrives as a wash.
       */}
-      {shade !== null && (
+      {shade !== null && !forceCover && (
         <div
           aria-hidden
           data-nav-skip

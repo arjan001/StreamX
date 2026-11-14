@@ -48,8 +48,18 @@ export function RefreshLibrary({ className }: { className?: string }) {
     ? Math.max(0, Math.min(100, Math.round((s.step / s.steps) * 100)))
     : null;
 
+  const phaseLabel = busy && s.phase
+    ? s.phase === 'live' || s.phase === 'liveCategories' ? 'Downloading channels'
+      : s.phase === 'vod' || s.phase === 'vodCategories' ? 'Downloading movies'
+      : s.phase === 'series' || s.phase === 'seriesCategories' ? 'Downloading series'
+      : s.phase === 'saving' ? 'Saving to device'
+      : s.phase === 'store' ? 'Restoring from cache'
+      : s.phase === 'packages' ? 'Fetching packages'
+      : `Fetching ${s.phase}`
+    : null;
+
   const title = busy
-    ? `Rebuilding the library${pct === null ? '' : ` — ${pct}%`}`
+    ? `${phaseLabel ?? 'Rebuilding the library'}${pct !== null ? ` — ${pct}%` : '…'}`
     : s.state === 'error'
       ? `Last rebuild failed: ${s.error ?? 'unknown'}. Press to try again.`
       : 'Rebuild this device’s library';
@@ -91,6 +101,9 @@ export function RefreshLibrary({ className }: { className?: string }) {
         /* The number replaces the glyph while there is one to show — two things
            spinning in a 40px square is noise, and the number is the message. */
         <span className="font-mono text-[length:var(--t-2xs)] tabular-nums leading-none">{pct}</span>
+      ) : busy && phaseLabel ? (
+        /* Show a small icon while the phase label describes what's happening */
+        <RefreshCw className="h-5 w-5 animate-spin" />
       ) : (
         <RefreshCw className={`h-5 w-5 ${busy ? 'animate-spin' : ''}`} />
       )}

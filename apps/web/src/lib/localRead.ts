@@ -893,6 +893,98 @@ export async function localSearch(
 }
 
 /**
+ * Fast synchronous search for autocomplete suggestions.
+ *
+ * Returns content titles AND cast/actor names that match the query,
+ * suitable for showing as autocomplete suggestions while typing.
+ * When the user types an actor's name, they see both the actor suggestion
+ * and movies featuring that actor.
+ * Uses the exact search pass only — no spelling correction needed for suggestions.
+ */
+export function localSearchSuggestions(q: string, limit: number = 12): { name: string; type: string }[] {
+  const cat = localCatalogue();
+  if (!cat || q.length < 2) return [];
+  const found = search(cat, q, { limit });
+  const suggestions: { name: string; type: string }[] = [];
+  const seen = new Set<string>();
+
+  const add = (name: string, type: string) => {
+    const key = `${type}:${name.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      suggestions.push({ name, type });
+    }
+  };
+
+  // Phase 1: Content titles from search results
+  for (const view of found.live) {
+    add(view.name ?? '', 'channel');
+  }
+  for (const view of found.movies) {
+    add(view.name ?? '', 'movie');
+  }
+  for (const view of found.series) {
+    add(view.name ?? '', 'series');
+  }
+
+  // Phase 2: Cast/actor names — scan all items for matching cast members
+  const needle = q.toLowerCase().trim();
+  const parts = needle.split(/\s+/).filter((w) => w.length > 0);
+  const cast = cat.items.cast;
+  const count = cat.items.count;
+
+  // Collect matching actor names from cast column
+  const actorNames = new Map<string, number>(); // folded name -> count
+  for (let i = 0; i < count; i++) {
+    const castText: string | undefined = (cast as any)[i];
+    if (!castText || castText === '') continue;
+    const words: string[] = castText.split(' ').filter((w: string) => w.length > 0);
+    if (parts.length >= 2) {
+      // Multi-word: look for consecutive match
+      for (let j = 0; j <= words.length - parts.length; j++) {
+        let ok = true;
+        for (let k = 0; k < parts.length; k++) {
+          if (words[j + k] !== parts[k]) { ok = false; break; }
+        }
+        if (!ok) continue;
+        const id = parts.join(' ');
+        actorNames.set(id, (actorNames.get(id) ?? 0) + 1);
+      }
+    } else {
+      // Single word: find actors whose name starts with the query
+      const token = parts[0]!;
+      for (let j = 0; j < words.length; j++) {
+        const w = words[j]!;
+        if (w !== token && !w.startsWith(token)) continue;
+        // Build a 2-word name if possible
+        const next = words[j + 1];
+        const prev = words[j - 1];
+        const id = next && next.length > 1
+          ? `${w} ${next}`
+          : prev
+            ? `${prev} ${w}`
+            : w;
+        actorNames.set(id, (actorNames.get(id) ?? 0) + 1);
+      }
+    }
+  }
+
+  // Add top actor suggestions (title-cased)
+  const sortedActors = [...actorNames.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4); // cap at 4 actor suggestions
+
+  for (const [id] of sortedActors) {
+    const label = id.split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+    add(label, 'actor');
+  }
+
+  return suggestions.slice(0, limit);
+}
+
+/**
  * What this device actually holds, counted from the columns.
  *
  * One scan over the flags column: 124,157 rows is a few milliseconds, and it is only read when a screen
