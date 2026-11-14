@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.64.3 (2026-11-14)
+
+### Navigation
+- Removed "Adult" text link from the main navigation bar.
+- Added a heart icon (♡) next to the profile icon in the header; clicking it opens the Adult section.
+- The heart icon is icon-only with no text label, matching the existing icon style.
+
+### Home Page
+- Removed the Adult card from the home screen; only Live TV, Sports TV, Movies, Series, and Replay remain.
+- Reduced the vertical gap between the home cards and the Continue Watching section for a tighter layout.
+- Removed the white border line under the header bar.
+
+### Sports TV
+- Sports videos now fill the entire player area (`object-fit: cover`), eliminating the grey letterbox bars that obscured the bottom-right corner during football matches.
+- Live TV, Movies, and Series keep the normal `contain` behavior unchanged.
+
+### Performance
+- Tab navigation is now instant on first load: Live TV, Movies, and Series data are pre-fetched in the background after the library becomes ready, so switching tabs no longer takes ~10 seconds.
+- Pre-fetching runs silently and does not interfere with normal use.
+
+### Search
+- Added autocomplete suggestions that appear as you type, showing content titles and actor names.
+- Typing a cast member's name shows both the actor suggestion and movies featuring that actor.
+- Clicking an actor suggestion filters results by that person.
+
+### Adult Section
+- Redesigned the filter bar: a wide search bar occupies most of the row, with a compact gender dropdown and view toggle on the right.
+- Added covers/tiles view toggle: "Covers" shows portrait cards (2:3), "Tiles" shows landscape cards (3:2).
+- Improved tag extraction: tags are now pulled from movie titles and plot descriptions using ~80 adult-related keywords (blonde, milf, threesome, POV, amateur, etc.).
+- Tags are fetched from 300 items (increased from 100) for better coverage.
+- Clicking a tag filters movies by that tag name.
+
+### Error Handling
+- Login failures now show structured error codes (E001–E006, N001–N003) with troubleshooting hints in an expandable "Error details" section.
+- Enhanced diagnostic logging for APK log reporting: startup diagnostics now log NATIVE, BUILD, IS_BETA, API_ORIGIN, and VERSION; critical warning if the APK is built without `VITE_API_ORIGIN`.
+
+### Refresh & Updates
+- The refresh button now shows phase-specific status messages: "Downloading channels", "Downloading movies", "Downloading series", "Saving to device".
+- The "Check for updates" button in Settings → About checks GitHub for the latest release and shows the "What's New" modal if a newer version is available.
+- The update modal appears automatically on app start when a newer, non-dismissed release exists.
+
+### Bug Fixes
+- Fixed version drift: `version.json`, `build.gradle`, and `package.json` are now in sync (1.64.3, build 211).
+- Progress bars on Continue Watching tiles show the watch fraction correctly.
+
 ## Unreleased
 
 First store release of Streamix as a neutral player.

@@ -287,15 +287,6 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          body: |
-            ## Release ${{ steps.tag.outputs.version }}
-
-            ### Downloads
-            - **streamix-arm64.apk**: For most modern devices (recommended)
-            - **streamix-armv7.apk**: For older devices and legacy TV boxes
-            - **streamix-universal.apk**: Works on all devices (larger file)
-
-            ### Changes
-            See commit history for details.
+          body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
