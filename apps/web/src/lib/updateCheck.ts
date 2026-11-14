@@ -91,7 +91,11 @@ export function dismissVersion(version: string): void {
  */
 export async function checkForUpdate(): Promise<ReleaseInfo | null> {
   // Development builds don't check for updates
-  if (CURRENT_VERSION === '') return null;
+  if (CURRENT_VERSION === '') {
+    console.warn('[updateCheck] checkForUpdate skipped: VITE_APP_VERSION is empty — APK was likely built without version stamping');
+    return null;
+  }
+  console.log('[updateCheck] checkForUpdate: current version =', CURRENT_VERSION);
 
   try {
     const controller = new AbortController();
@@ -109,11 +113,20 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
     const tag = (data.tag_name as string | undefined) ?? '';
     const releaseVersion = tag.replace(/^v/, '');
 
+    console.log('[updateCheck] GitHub latest release:', releaseVersion, '(tag:', tag + ')');
+
     // Compare versions — only show if the release is newer
-    if (compareVersion(releaseVersion, CURRENT_VERSION) <= 0) return null;
+    const cmp = compareVersion(releaseVersion, CURRENT_VERSION);
+    console.log('[updateCheck] compareVersion(', releaseVersion, ', ', CURRENT_VERSION, ') =', cmp);
+    if (cmp <= 0) {
+      console.log('[updateCheck] No update needed: release is not newer than current version');
+      return null;
+    }
 
     // Skip if the user already dismissed this version (within expiry window)
-    if (isDismissed(releaseVersion)) return null;
+    const dismissed = isDismissed(releaseVersion);
+    console.log('[updateCheck] isDismissed(', releaseVersion, ') =', dismissed);
+    if (dismissed) return null;
 
     // Extract the arm64 APK download URL from release assets
     const assets = (data.assets as Array<{ name: string; browser_download_url: string }> | undefined) ?? [];
@@ -121,14 +134,16 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
     const fallbackAsset = assets[0];
     const downloadUrl = (arm64Asset ?? fallbackAsset)?.browser_download_url ?? '';
 
+    console.log('[updateCheck] Update available:', releaseVersion, 'with download_url:', !!downloadUrl);
     return {
       version: releaseVersion,
       body: (data.body as string | undefined) ?? '',
       html_url: (data.html_url as string | undefined) ?? `https://github.com/${GITHUB_REPO}/releases/latest`,
       download_url: downloadUrl,
     };
-  } catch {
-    // Network error, timeout, or parse error — silently fail
+  } catch (e) {
+    // Network error, timeout, or parse error — log for debugging
+    console.error('[updateCheck] Error checking for update:', e);
     return null;
   }
 }
@@ -140,7 +155,11 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
  */
 export async function forceCheckForUpdate(): Promise<ReleaseInfo | null> {
   // Development builds don't check for updates
-  if (CURRENT_VERSION === '') return null;
+  if (CURRENT_VERSION === '') {
+    console.warn('[updateCheck] forceCheckForUpdate skipped: VITE_APP_VERSION is empty');
+    return null;
+  }
+  console.log('[updateCheck] forceCheckForUpdate: current version =', CURRENT_VERSION);
 
   try {
     const controller = new AbortController();
@@ -158,8 +177,13 @@ export async function forceCheckForUpdate(): Promise<ReleaseInfo | null> {
     const tag = (data.tag_name as string | undefined) ?? '';
     const releaseVersion = tag.replace(/^v/, '');
 
+    console.log('[updateCheck] forceCheck: GitHub latest release:', releaseVersion);
+
     // Compare versions — only show if the release is newer
-    if (compareVersion(releaseVersion, CURRENT_VERSION) <= 0) return null;
+    if (compareVersion(releaseVersion, CURRENT_VERSION) <= 0) {
+      console.log('[updateCheck] forceCheck: No update needed');
+      return null;
+    }
 
     // Skip dismiss check — user explicitly requested this check
     // Extract the arm64 APK download URL from release assets
@@ -168,14 +192,15 @@ export async function forceCheckForUpdate(): Promise<ReleaseInfo | null> {
     const fallbackAsset = assets[0];
     const downloadUrl = (arm64Asset ?? fallbackAsset)?.browser_download_url ?? '';
 
+    console.log('[updateCheck] forceCheck: Update available:', releaseVersion);
     return {
       version: releaseVersion,
       body: (data.body as string | undefined) ?? '',
       html_url: (data.html_url as string | undefined) ?? `https://github.com/${GITHUB_REPO}/releases/latest`,
       download_url: downloadUrl,
     };
-  } catch {
-    // Network error, timeout, or parse error — silently fail
+  } catch (e) {
+    console.error('[updateCheck] forceCheck error:', e);
     return null;
   }
 }
