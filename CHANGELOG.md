@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.64.5 (2026-11-15)
+
+### Update Detection Fix
+- Added diagnostic logging to the update check system so you can see in logcat why updates are not detected (empty version, dismissed flag, or network error).
+- Added `.env` file with `PUBLIC_API_ORIGIN` fallback so local APK builds know where to send logs without requiring environment variables.
+
+### Logging Fix
+- The `.env` fallback ensures APKs built locally still send logs to the correct server. CI builds continue to use the `STREAMIX_API_ORIGIN` environment variable.
+- Created `LOGS_TESTING.md` with step-by-step commands to verify log capture on your device.
+
+### How to verify
+- After installing this APK, run `adb logcat | Select-String "updateCheck|errorReports"` to see diagnostic output confirming the version and API origin are set correctly.
+
 ## 1.64.4 (2026-11-15)
 
 ### Update System
