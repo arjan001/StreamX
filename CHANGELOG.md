@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.64.6 (2026-11-15)
+
+### Update System
+- Changed update banner dismiss timer from 1 hour to 10 minutes, so the update notification reappears more frequently until the user installs it.
+- The "Check for updates" button in Settings → About has no timer — it always shows the changelog modal when a newer version is available.
+
+### CI & Build
+- Restored GitHub Pages deployment job with `continue-on-error: true` so it no longer blocks the APK build and release process.
+- Ensured `VITE_APP_VERSION` is always stamped from `version.json` during build, so the APK always reports the correct version.
+
+### Verified
+- Adult card is confirmed removed from the home page.
+- Heart icon (♡) is confirmed placed next to the profile icon in the navigation bar.
+
 ## 1.64.5 (2026-11-15)
 
 ### Update Detection Fix

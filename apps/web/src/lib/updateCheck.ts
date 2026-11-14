@@ -3,7 +3,7 @@
  *
  * Fetches the latest stable release from the GitHub API, compares it with the
  * current app version, and returns release info if a newer version is available.
- * Dismissed versions are remembered via localStorage with a 1-hour expiry so the
+ * Dismissed versions are remembered via localStorage with a 10-minute expiry so the
  * same update reappears periodically until the user installs it.
  *
  * The GitHub API is public and rate-limited at 60/hour unauthenticated, which
@@ -14,8 +14,8 @@
 const GITHUB_REPO = 'arjan001/StreamX';
 const DISMISS_PREFIX = 'update.dismissed.';
 
-/** Dismissed versions reappear after this many milliseconds (1 hour). */
-const DISMISS_EXPIRY_MS = 60 * 60 * 1000;
+/** Dismissed versions reappear after this many milliseconds (10 minutes). */
+const DISMISS_EXPIRY_MS = 10 * 60 * 1000;
 
 /** The current app version, stamped at build time. */
 const CURRENT_VERSION = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? '';
@@ -52,7 +52,7 @@ function compareVersion(a: string, b: string): number {
 
 /**
  * Check if a version was previously dismissed by the user.
- * Returns false if the dismissal has expired (1 hour has passed), so the
+ * Returns false if the dismissal has expired (10 minutes have passed), so the
  * modal reappears periodically until the user installs the update.
  */
 export function isDismissed(version: string): boolean {
@@ -72,7 +72,7 @@ export function isDismissed(version: string): boolean {
 }
 
 /**
- * Mark a version as dismissed with a timestamp so it reappears after 1 hour.
+ * Mark a version as dismissed with a timestamp so it reappears after 10 minutes.
  */
 export function dismissVersion(version: string): void {
   try {
