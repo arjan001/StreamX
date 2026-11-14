@@ -28,8 +28,10 @@ export interface ReleaseInfo {
   version: string;
   /** The release body/changelog from GitHub. */
   body: string;
-  /** The GitHub release page URL. */
+  /** The GitHub release page URL (not used for download). */
   html_url: string;
+  /** Direct APK download URL from release assets. */
+  download_url: string;
 }
 
 /**
@@ -113,10 +115,17 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
     // Skip if the user already dismissed this version (within expiry window)
     if (isDismissed(releaseVersion)) return null;
 
+    // Extract the arm64 APK download URL from release assets
+    const assets = (data.assets as Array<{ name: string; browser_download_url: string }> | undefined) ?? [];
+    const arm64Asset = assets.find(a => (a.name ?? '').includes('arm64'));
+    const fallbackAsset = assets[0];
+    const downloadUrl = (arm64Asset ?? fallbackAsset)?.browser_download_url ?? '';
+
     return {
       version: releaseVersion,
       body: (data.body as string | undefined) ?? '',
       html_url: (data.html_url as string | undefined) ?? `https://github.com/${GITHUB_REPO}/releases/latest`,
+      download_url: downloadUrl,
     };
   } catch {
     // Network error, timeout, or parse error — silently fail
@@ -153,10 +162,17 @@ export async function forceCheckForUpdate(): Promise<ReleaseInfo | null> {
     if (compareVersion(releaseVersion, CURRENT_VERSION) <= 0) return null;
 
     // Skip dismiss check — user explicitly requested this check
+    // Extract the arm64 APK download URL from release assets
+    const assets = (data.assets as Array<{ name: string; browser_download_url: string }> | undefined) ?? [];
+    const arm64Asset = assets.find(a => (a.name ?? '').includes('arm64'));
+    const fallbackAsset = assets[0];
+    const downloadUrl = (arm64Asset ?? fallbackAsset)?.browser_download_url ?? '';
+
     return {
       version: releaseVersion,
       body: (data.body as string | undefined) ?? '',
       html_url: (data.html_url as string | undefined) ?? `https://github.com/${GITHUB_REPO}/releases/latest`,
+      download_url: downloadUrl,
     };
   } catch {
     // Network error, timeout, or parse error — silently fail
