@@ -36,6 +36,7 @@ import { useKeyLayer, type Binding } from '../lib/keys';
 import { focusFirst, focusIsLoose } from '../lib/spatialNav';
 import { DebugPanel } from './DebugPanel';
 import { RefreshLibrary } from './RefreshLibrary';
+import { UpdateBanner } from './UpdateBanner';
 import {
   localStatus, refreshLocal, subscribeLocal, type IngestStatus,
 } from '../lib/localCatalogue';
@@ -1898,6 +1899,10 @@ export function Chrome({ children }: { children: React.ReactNode }) {
       {/* The "N items stored on this device" banner used to sit here. It
           reported our own bookkeeping - how many rows were downloaded and
           when - to someone who came to watch television. */}
+
+      {/* Update banner — sits below the header, above the page. Draws nothing
+          unless a newer release is available. */}
+      <UpdateBanner />
 
       {/* Keyed on the path so a route change is a movement rather than a
           repaint. 0.22s: long enough to read as intentional, short enough that

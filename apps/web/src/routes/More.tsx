@@ -20,6 +20,7 @@ import { LEGAL_PAGES, LEGAL_TITLES, appVersion } from '../legal';
 import { dismissVersion, forceCheckForUpdate } from '../lib/updateCheck';
 import type { ReleaseInfo } from '../lib/updateCheck';
 import { UpdateModal } from '../components/UpdateModal';
+import { setUpdateRelease } from '../lib/updateState';
 
 /**
  * Settings, as a screen with two halves.
@@ -344,15 +345,19 @@ export function More() {
    * Not automatic: the user presses "Check for updates" and, if a newer release
    * exists, the modal appears. The banner shows inline when an update is found.
    */
-  const [aboutRelease, setAboutRelease] = useState<ReleaseInfo | null>(null);
   const [aboutChecking, setAboutChecking] = useState(false);
   const checkAboutUpdate = async () => {
     setAboutChecking(true);
     // Force check ignores dismiss state — user explicitly requested this
     const r = await forceCheckForUpdate();
     setAboutChecking(false);
-    if (r !== null) setAboutRelease(r);
+    if (r !== null) {
+      // Publish to shared store so the banner shows, and keep local copy for the modal
+      setUpdateRelease(r);
+      setAboutRelease(r);
+    }
   };
+  const [aboutRelease, setAboutRelease] = useState<ReleaseInfo | null>(null);
   const dismissAboutUpdate = () => {
     if (aboutRelease !== null) dismissVersion(aboutRelease.version);
     setAboutRelease(null);

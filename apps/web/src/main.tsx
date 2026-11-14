@@ -3,7 +3,7 @@
    plain-HTTP page served from an IP — which is how this app is reached — and a
    dependency that calls it throws on its first line. See lib/randomUuid.ts. */
 import './lib/installShims';
-import { StrictMode, Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { StrictMode, Suspense, lazy, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   BrowserRouter, HashRouter, Navigate, Route, Routes,
@@ -52,8 +52,9 @@ import { addAccountOpen, closeAddAccount, subscribeAddAccount } from './lib/addA
 import { onExitAsk } from './lib/nativeBack';
 import { isNativeShell } from './lib/direct';
 import { startAccountChecks } from './lib/accountCheck';
-import { checkForUpdate, dismissVersion } from './lib/updateCheck';
+import { checkForUpdate, dismissVersion, forceCheckForUpdate } from './lib/updateCheck';
 import type { ReleaseInfo } from './lib/updateCheck';
+import { getUpdateRelease, setUpdateRelease, subscribeUpdateRelease } from './lib/updateState';
 
 /*
  * Routes load after first paint.
@@ -492,17 +493,14 @@ function Gate({ children }: { children: React.ReactNode }) {
   /*
    * New release check — after the welcome door closes, not before.
    *
-   * The modal sits over the landing page, not over sign-in. It checks the
-   * GitHub API for the latest stable release, compares versions, and shows
-   * the "What's New" modal if a newer, non-dismissed release exists.
+   * The banner sits below the header, not over sign-in. It checks the GitHub
+   * API for the latest stable release, compares versions, and shows the update
+   * banner if a newer, non-dismissed release exists.
    *
-   * Runs on two triggers:
-   * 1. When the welcome door closes (first launch after install)
-   * 2. When the library becomes ready (after catalog download completes)
-   * This ensures the modal appears whether the user already had a catalog
-   * or just finished downloading one.
+   * Results are published to the shared updateState store so the UpdateBanner
+   * in Chrome picks them up without prop drilling.
    */
-  const [updateRelease, setUpdateRelease] = useState<ReleaseInfo | null>(null);
+  const updateRelease = useSyncExternalStore(subscribeUpdateRelease, getUpdateRelease, () => null);
   const checkUpdate = useCallback(() => {
     void checkForUpdate().then((r) => {
       if (r !== null) setUpdateRelease(r);
@@ -533,7 +531,7 @@ function Gate({ children }: { children: React.ReactNode }) {
   }, [welcome, checkUpdate]);
 
   /*
-   * Periodic check — every hour, re-check for updates so a dismissed modal
+   * Periodic check — every hour, re-check for updates so a dismissed banner
    * reappears if the user is still running an old version. Only runs when
    * the app is in the foreground and nothing is playing.
    */
@@ -744,8 +742,9 @@ function Gate({ children }: { children: React.ReactNode }) {
       {/* Never over the door either — see `exiting` above. The registration already
           refuses while the door is open; this covers the frame in between. */}
       {exiting && !welcome && <ExitDialog onCancel={cancelExit} />}
-      {/* New release — after the door closes, not over it. z-[71] sits between
-          Welcome and ExpiredDialog so it never conflicts with critical dialogs. */}
+      {/* New release — the banner in Chrome handles the automatic notification.
+          The modal is kept only for the manual "Check for updates" button in
+          Settings → About, which uses forceCheckForUpdate to bypass dismiss. */}
       {!welcome && !adding && !exiting && (
         <UpdateModal release={updateRelease} onDismiss={dismissUpdate} />
       )}
