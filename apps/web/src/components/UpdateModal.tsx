@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { ExternalLink, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CheckCircle, Download, X } from 'lucide-react';
 import { useSkin } from '../lib/skin';
 import { focusFirst } from '../lib/spatialNav';
 import type { ReleaseInfo } from '../lib/updateCheck';
@@ -12,8 +12,13 @@ import type { ReleaseInfo } from '../lib/updateCheck';
  * z-[71] sits between Welcome (z-[70]) and ExpiredDialog (z-[72]).
  *
  * The changelog body comes from the GitHub release notes, rendered as plain text
- * in a scrollable area. Two buttons: Download opens the release page, Dismiss
- * closes and remembers the version.
+ * in a scrollable area. Three states:
+ * 1. "Update now" — fetches the APK as a blob and triggers download via blob URL,
+ *    avoiding any browser navigation or "open with" dialog on Android TWA apps.
+ * 2. "Downloading..." — shows while the APK is being fetched.
+ * 3. "Install update" — appears after download completes, attempts to open the
+ *    package installer intent.
+ * Dismiss closes and remembers the version (with 1-hour expiry).
  */
 export function UpdateModal({
   release,
@@ -24,10 +29,46 @@ export function UpdateModal({
 }) {
   const modern = useSkin().shell === 'modern';
   const panel = useRef<HTMLDivElement | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
 
   useEffect(() => {
     if (release !== null && panel.current !== null) focusFirst(panel.current);
   }, [release]);
+
+  const startDownload = useCallback(async () => {
+    if (release == null || downloading) return;
+    const url = release.download_url;
+    if (!url) return;
+    setDownloading(true);
+    setDownloaded(false);
+
+    try {
+      // Fetch the APK as a blob and trigger download via a temporary blob URL.
+      // This avoids any browser navigation or "open with" dialog on Android TWA apps.
+      // The browser's download manager handles the APK file automatically.
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `streamix-v${release.version}.apk`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Revoke the blob URL after a short delay to allow the download to start
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      setDownloading(false);
+      setDownloaded(true);
+    } catch {
+      // If fetch fails (e.g., CORS), fall back to window.location.href
+      // which will trigger the browser's download manager
+      window.location.href = url;
+      setDownloading(false);
+      setDownloaded(true);
+    }
+  }, [release, downloading]);
 
   if (release === null) return null;
 
@@ -78,20 +119,47 @@ export function UpdateModal({
         )}
 
         <div className="mt-5">
-          <button
-            data-nav-first
-            type="button"
-            onClick={() => window.open(release.html_url, '_blank', 'noopener')}
-            className={`${button} bg-tally/8 border-tally/30`}
-          >
-            <ExternalLink className="h-5 w-5 shrink-0 text-ground" aria-hidden />
-            <span className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
-              Download
-            </span>
-          </button>
+          {downloaded ? (
+            <button
+              data-nav-first
+              type="button"
+              onClick={() => {
+                // Try to open the downloaded APK for installation
+                // On Android, the download should be in the Downloads folder
+                // We attempt to trigger the package installer via intent
+                try {
+                  // On TWA/native WebView, try to use the Intent directly
+                  const intentUrl = `intent://view?package=${encodeURIComponent('com.streamix')}&type=application/vnd.android.package-archive#Intent;scheme=package;end`;
+                  window.location.href = intentUrl;
+                } catch {
+                  // Fallback: just let the user find it in their downloads
+                  onDismiss();
+                }
+              }}
+              className={`${button} bg-tally/8 border-tally/30`}
+            >
+              <CheckCircle className="h-5 w-5 shrink-0 text-ground" aria-hidden />
+              <span className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
+                Install update
+              </span>
+            </button>
+          ) : (
+            <button
+              data-nav-first
+              type="button"
+              onClick={startDownload}
+              disabled={downloading}
+              className={`${button} bg-tally/8 border-tally/30 ${downloading ? 'opacity-60' : ''}`}
+            >
+              <Download className={`h-5 w-5 shrink-0 text-ground ${downloading ? 'animate-spin' : ''}`} aria-hidden />
+              <span className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
+                {downloading ? 'Downloading...' : 'Update now'}
+              </span>
+            </button>
+          )}
           <button type="button" onClick={onDismiss} className={button}>
             <span className="text-[length:var(--t-md)] text-ink tv:text-[length:var(--t-lg)]">
-              Dismiss
+              {downloaded ? 'Done' : 'Dismiss'}
             </span>
           </button>
         </div>
