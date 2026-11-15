@@ -11,28 +11,12 @@ import { isPreparing, stopPreparing, subscribePreparing } from '../lib/firstCata
  *     when they sign in you have to show a proper loading screen till
  *     everything is loaded Right now it's so bad
  *
- * It was a one-line dialog — "it carries on in the background" — and then an
- * app whose every list was empty, with a thin bar at the top counting
- * megabytes. On a real line that is 159MB and 308,270 titles: a minute or more
- * of a television that looks broken, while the viewer presses things that do
- * nothing.
+ * It covers the entire screen so the user cannot browse an empty catalogue.
+ * It shows the phase, progress, and size so the user knows what's happening.
  *
- * ── what this deliberately does ──
- *
- * **It covers everything.** A viewer cannot browse a catalogue that does not
- * exist yet, and letting them try is what made it feel broken. "if possible you
- * can show a black screen for a few seconds or something" — this is that, with
- * the reason written on it.
- *
- * **It says what is happening and how big it is.** Not a spinner: the phase,
- * the step, the megabytes and the number of titles found so far. A minute is a
- * long time to look at a screen that will not say why.
- *
- * **It never traps.** A build that fails shows the failure and a way past it,
- * and the same button is there after fifteen seconds of any single phase — a
- * catalogue that is taking too long is still a catalogue this device can browse
- * once some of it has landed, and being held hostage by it is worse than an
- * incomplete list.
+ * The only way out is if the build fails — a "Carry on without it" button
+ * appears on error. There is no "Browse while it finishes" option; the user
+ * waits for the catalogue to complete to avoid black screens on tabs like Movies.
  *
  * It shows only for a FIRST build of a newly added subscription — see
  * `lib/firstCatalogue.ts` for why that is an explicit signal and not something
@@ -41,21 +25,11 @@ import { isPreparing, stopPreparing, subscribePreparing } from '../lib/firstCata
 export function CataloguePrepare() {
   const [on, setOn] = useState(isPreparing);
   const [s, setS] = useState<IngestStatus>(localStatus);
-  const [waited, setWaited] = useState(0);
 
   useEffect(() => subscribePreparing(setOn), []);
   useEffect(() => subscribeLocal(setS), []);
 
-  /* The way out appears on its own. A viewer who has watched one phase sit
-     still for fifteen seconds has learned what they need to know about it. */
-  useEffect(() => {
-    if (!on) { setWaited(0); return; }
-    const t = window.setInterval(() => setWaited((n) => n + 1), 1000);
-    return () => window.clearInterval(t);
-  }, [on, s.phase]);
-  useEffect(() => { setWaited(0); }, [s.phase, s.step]);
-
-  /* Built, or gave up: either way this is no longer the only thing on screen. */
+  /* Built: no longer the only thing on screen. */
   useEffect(() => {
     if (on && s.state === 'ready') stopPreparing();
   }, [on, s.state]);
@@ -66,7 +40,6 @@ export function CataloguePrepare() {
   const label = s.phase ? PHASE_LABELS[s.phase] : 'Starting';
   const mb = s.bytes > 0 ? `${(s.bytes / 1_048_576).toFixed(1)} MB` : null;
   const pct = s.steps > 0 ? Math.min(100, Math.round((s.step / s.steps) * 100)) : 0;
-  const stuck = waited >= 15;
 
   return (
     <div
@@ -111,7 +84,7 @@ export function CataloguePrepare() {
         </div>
       )}
 
-      {(failed || stuck) && (
+      {failed && (
         <button
           type="button"
           onClick={() => stopPreparing()}
@@ -119,7 +92,7 @@ export function CataloguePrepare() {
                      hover:border-ink-3 focus:border-focus tv:px-6 tv:py-3 tv:text-[length:var(--t-lg)]"
           style={{ borderRadius: 'var(--r-sm)' }}
         >
-          {failed ? 'Carry on without it' : 'Browse while it finishes'}
+          Carry on without it
         </button>
       )}
     </div>

@@ -145,22 +145,23 @@ export function Welcome({ onDone }: { onDone: () => void }) {
               {note}
             </p>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Choice
-                first
-                Icon={Play}
-                title="Start watching"
-                blurb="Straight to the channels. The download carries on behind you."
-                onPick={() => finish('/live')}
-              />
+            <div className="mt-5 grid gap-3">
               {kind === 'xtream' && (
                 <Choice
+                  first
                   Icon={ListChecks}
                   title="Personalise the list first"
                   blurb="Countries, packages, and order — changes every screen."
                   onPick={() => finish('/organise')}
                 />
               )}
+              <Choice
+                first={kind !== 'xtream'}
+                Icon={Play}
+                title="Continue"
+                blurb="Your catalogue is being prepared. Please wait until it finishes."
+                onPick={() => finish('/live')}
+              />
             </div>
           </>
         )}
