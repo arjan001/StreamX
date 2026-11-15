@@ -3,153 +3,273 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Streamix - IPTV Player</title>
+  <title>Streamix — Download</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 0;
       background: #0b1013;
       color: #fff;
+      line-height: 1.6;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
-      padding: 40px 20px;
+      padding: 60px 24px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 48px;
     }
     h1 {
       color: #f09018;
-      font-size: 2.5em;
+      font-size: 3em;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 1.2em;
+    }
+    .version-badge {
+      display: inline-block;
+      background: #1a1a1a;
+      color: #f09018;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      margin-top: 12px;
+      border: 1px solid #333;
+    }
+    .downloads {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .download-card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .download-card:hover {
+      border-color: #f09018;
+    }
+    .download-card .icon {
+      font-size: 2em;
+      margin-bottom: 12px;
+    }
+    .download-card h3 {
+      color: #f09018;
+      margin-bottom: 8px;
+      font-size: 1.1em;
+    }
+    .download-card p {
+      color: #888;
+      font-size: 0.85em;
+      margin-bottom: 16px;
     }
     .download-btn {
       display: inline-block;
       background: #f09018;
       color: white;
-      padding: 15px 30px;
+      padding: 10px 24px;
       text-decoration: none;
       border-radius: 8px;
       font-weight: bold;
-      font-size: 18px;
-      margin: 20px 0;
+      font-size: 0.95em;
+      transition: background 0.2s;
     }
     .download-btn:hover {
       background: #d67a0d;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 20px 0;
+    .recommended {
+      border-color: #f09018;
+      position: relative;
     }
-    th, td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #333;
+    .recommended::after {
+      content: "Recommended";
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      background: #f09018;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 0.75em;
+      font-weight: bold;
     }
-    a {
+    .section {
+      margin: 48px 0;
+    }
+    .section h2 {
       color: #f09018;
+      font-size: 1.5em;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
+    }
+    .changelog {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .changelog h3 {
+      color: #f09018;
+      margin-bottom: 12px;
+    }
+    .changelog ul {
+      list-style: none;
+      padding: 0;
+    }
+    .changelog li {
+      padding: 6px 0;
+      border-bottom: 1px solid #222;
+    }
+    .changelog li:last-child {
+      border-bottom: none;
+    }
+    .changelog li::before {
+      content: "✓ ";
+      color: #f09018;
+      font-weight: bold;
+    }
+    .install-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .step {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .step .number {
+      display: inline-block;
+      background: #f09018;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      line-height: 32px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .step h4 {
+      margin-bottom: 8px;
+    }
+    .step p {
+      color: #888;
+      font-size: 0.9em;
+    }
+    footer {
+      text-align: center;
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid #333;
+      color: #666;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Streamix - IPTV Player</h1>
-    <p>A neutral IPTV player for live TV, movies, and series from user-provided sources.</p>
-    
-    <h2>Latest Release</h2>
-    <p><strong>Version VERSION_PLACEHOLDER</strong></p>
-    
-    <div style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
-      <a href="streamix-arm64.apk" class="download-btn" download>
-        📱 Download ARM64 APK (Most devices)
-      </a>
-      <a href="streamix-armv7.apk" class="download-btn" download>
-        📱 Download ARMv7 APK (Older devices)
-      </a>
-      <a href="streamix-x86_64.apk" class="download-btn" download>
-        📱 Download x86_64 APK (Emulators / Chromebooks)
-      </a>
-      <a href="streamix-universal.apk" class="download-btn" download>
-        📱 Download Universal APK (Works on all)
-      </a>
+    <header>
+      <h1>Streamix</h1>
+      <p class="subtitle">IPTV Player — Live TV, Movies & Series</p>
+      <span class="version-badge">Version VERSION_PLACEHOLDER</span>
+    </header>
+
+    <div class="section">
+      <h2>📥 Download APK</h2>
+      <div class="downloads">
+        <div class="download-card recommended">
+          <div class="icon">📱</div>
+          <h3>ARM64</h3>
+          <p>Most modern phones and TV boxes</p>
+          <a href="streamix-arm64.apk" class="download-btn" download>Download</a>
+        </div>
+        <div class="download-card">
+          <div class="icon">📱</div>
+          <h3>ARMv7</h3>
+          <p>Older devices and legacy TV boxes</p>
+          <a href="streamix-armv7.apk" class="download-btn" download>Download</a>
+        </div>
+        <div class="download-card">
+          <div class="icon">💻</div>
+          <h3>x86_64</h3>
+          <p>Emulators and Chromebooks</p>
+          <a href="streamix-x86_64.apk" class="download-btn" download>Download</a>
+        </div>
+        <div class="download-card">
+          <div class="icon">🌐</div>
+          <h3>Universal</h3>
+          <p>Works on all devices (larger file)</p>
+          <a href="streamix-universal.apk" class="download-btn" download>Download</a>
+        </div>
+      </div>
     </div>
-    <p style="color: #888; margin-top: 10px; font-size: 14px;">
-      Choose the APK that matches your device. ARM64 works for most modern Android devices.
-    </p>
-    
-    <h2>APK Details</h2>
-    <table>
-      <tr>
-        <th>Architecture</th>
-        <th>Best For</th>
-        <th>Download</th>
-      </tr>
-      <tr>
-        <td>ARM64 (arm64-v8a)</td>
-        <td>Most modern phones and TV boxes (recommended)</td>
-        <td><a href="streamix-arm64.apk" download>Download</a></td>
-      </tr>
-      <tr>
-        <td>ARMv7 (armeabi-v7a)</td>
-        <td>Older devices and legacy TV boxes</td>
-        <td><a href="streamix-armv7.apk" download>Download</a></td>
-      </tr>
-      <tr>
-        <td>x86_64</td>
-        <td>Android emulators and Chromebooks</td>
-        <td><a href="streamix-x86_64.apk" download>Download</a></td>
-      </tr>
-      <tr>
-        <td>Universal</td>
-        <td>Every device, larger download</td>
-        <td><a href="streamix-universal.apk" download>Download</a></td>
-      </tr>
-    </table>
-    
-    <h2>New Features</h2>
-    <ul>
-      <li>✅ Adult content section with bunny icon (top right)</li>
-      <li>✅ Tags rail with content counts</li>
-      <li>✅ Cast rail with avatars and initials fallback</li>
-      <li>✅ Sex filter (straight, gay, bisexual, lesbian, transgender)</li>
-      <li>✅ Purple/pink hover effects on adult cards</li>
-      <li>✅ 15 sports categories (Football, Basketball, Tennis, F1, etc.)</li>
-      <li>✅ Blurred sport backgrounds when selecting categories</li>
-      <li>✅ Today and Tomorrow time filters for sports EPG</li>
-      <li>✅ EPG integration with Now/Next display</li>
-      <li>✅ On-device catalogue with search and filtering</li>
-    </ul>
-    
-    <h2>Supported Sources</h2>
-    <ul>
-      <li>Xtream-style servers (address, username, password)</li>
-      <li>M3U/M3U8 playlists with optional XMLTV guide</li>
-      <li>Single stream links</li>
-      <li>Stalker/MAC portals (Android and iOS)</li>
-    </ul>
-    
-    <h2>Installation</h2>
-    <ol>
-      <li>Download the APK for your device architecture using the buttons above</li>
-      <li>Enable "Install from unknown sources" in settings</li>
-      <li>Open the APK file to install</li>
-    </ol>
-    
-    <h2>Documentation</h2>
-    <ul>
-      <li><a href="internal-docs/01-playlist-formats.md">Playlist Formats</a></li>
-      <li><a href="internal-docs/02-xtream-api.md">Xtream API</a></li>
-      <li><a href="internal-docs/03-catchup-epg.md">Catch-up & EPG</a></li>
-      <li><a href="internal-docs/04-stalker-portals.md">Stalker Portals</a></li>
-      <li><a href="internal-docs/05-platform-engines.md">Platform Engines</a></li>
-      <li><a href="internal-docs/06-architecture.md">Architecture</a></li>
-    </ul>
-    
-    <h2>Build Status</h2>
-    <p>
-      <a href="https://github.com/arjan001/StreamX/actions/workflows/build-android-apk.yml">
-        <img src="https://github.com/arjan001/StreamX/actions/workflows/build-android-apk.yml/badge.svg" alt="Build Status" />
-      </a>
-    </p>
+
+    <div class="section">
+      <h2>📋 What's New</h2>
+      <div class="changelog">
+        <h3>Version VERSION_PLACEHOLDER</h3>
+        <ul>
+          <li>Update banner at the top of the app for new releases</li>
+          <li>Background APK download — no browser redirects</li>
+          <li>Login persistence after APK updates</li>
+          <li>Search autocomplete with cast suggestions</li>
+          <li>Adult section with search-first layout and covers/tiles toggle</li>
+          <li>Sports force-cover to remove grey bars</li>
+          <li>Instant tab navigation with background pre-fetching</li>
+          <li>Error codes on login failures for easier troubleshooting</li>
+          <li>Phase-specific refresh messages during catalog download</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔧 Installation</h2>
+      <div class="install-steps">
+        <div class="step">
+          <div class="number">1</div>
+          <h4>Download</h4>
+          <p>Choose the APK that matches your device from above</p>
+        </div>
+        <div class="step">
+          <div class="number">2</div>
+          <h4>Enable Unknown Sources</h4>
+          <p>Allow installation from unknown sources in your device settings</p>
+        </div>
+        <div class="step">
+          <div class="number">3</div>
+          <h4>Install</h4>
+          <p>Open the downloaded APK file to install the app</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📡 Supported Sources</h2>
+      <div class="changelog">
+        <ul>
+          <li>Xtream-style servers (address, username, password)</li>
+          <li>M3U/M3U8 playlists with optional XMLTV guide</li>
+          <li>Single stream links</li>
+          <li>Stalker/MAC portals (Android and iOS)</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <p>Streamix — A neutral IPTV player. No built-in content.</p>
+      <p style="margin-top: 8px;">For support, visit <a href="https://streamix24.com" style="color: #f09018;">streamix24.com</a></p>
+    </footer>
   </div>
 </body>
 </html>

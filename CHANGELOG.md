@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.64.8 (2026-11-15)
+
+### GitHub Pages Restoration
+- Restored GitHub Pages deployment workflow so APK download links are available on the project's documentation page.
+- Redesigned the download page with a clean layout: 4 APK download cards (ARM64, ARMv7, x86_64, Universal), changelog section, and installation steps.
+- Removed all GitHub repository links from the download page — users can download APKs directly without being redirected to the source code.
+
+### APK Download Flow
+- The "Update now" button in the app downloads the APK silently via fetch+blob — no browser navigation or "open with" dialog.
+- Users are never redirected to the GitHub release page, keeping the source code private.
+
+### CI & Build
+- The `deploy-docs` CI job deploys the documentation page with the latest APK files after each successful build.
+- Job uses `continue-on-error: true` so it does not block the APK build and release process if GitHub Pages is not enabled.
+
 ## 1.64.7 (2026-11-15)
 
 ### Removed
