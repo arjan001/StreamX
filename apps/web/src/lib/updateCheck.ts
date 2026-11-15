@@ -1,9 +1,8 @@
 /**
- * Check for new app releases.
+ * Check for new app releases on GitHub.
  *
- * Tries apk.lovix.com first (dedicated APK download server), then falls back
- * to GitHub API. The server approach avoids redirecting users to GitHub on TV
- * devices and works with a private repository.
+ * Fetches the latest stable release from the GitHub API, compares it with the
+ * current app version, and returns release info if a newer version is available.
  *
  * Dismissed versions are remembered via localStorage with a 10-minute expiry so the
  * same update reappears periodically until the user installs it.
@@ -13,7 +12,6 @@
  */
 
 const GITHUB_REPO = 'arjan001/StreamX';
-const APK_SERVER_URL = 'https://apk.lovix.com/api/release.json';
 const DISMISS_PREFIX = 'update.dismissed.';
 
 /** Dismissed versions reappear after this many milliseconds (10 minutes). */
@@ -85,38 +83,11 @@ export function dismissVersion(version: string): void {
 }
 
 /**
- * Fetch release info from the apk.lovix.com server.
- * Returns null if the server is not yet configured or returns an error.
- */
-async function checkApkServer(): Promise<ReleaseInfo | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(APK_SERVER_URL, { signal: controller.signal });
-    window.clearTimeout(timeout);
-    if (!response.ok) return null;
-    const data = await response.json();
-    const version = (data.version as string | undefined) ?? '';
-    const downloadUrl = (data.download_url as string | undefined) ?? '';
-    const changelogUrl = (data.changelog as string | undefined) ?? '';
-    if (!version || !downloadUrl) return null;
-    // Fetch changelog body if available
-    let body = '';
-    if (changelogUrl) {
-      try {
-        const clResp = await fetch(changelogUrl, { signal: controller.signal });
-        if (clResp.ok) body = await clResp.text();
-      } catch { /* changelog optional */ }
-    }
-    console.log('[updateCheck] apk.lovix.com release:', version);
-    return { version, body, html_url: '', download_url: downloadUrl };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Fetch the latest stable release from GitHub.
+ * Fetch the latest stable release from GitHub and compare with the current
+ * app version. Returns release info if a newer, non-dismissed version is
+ * available, or null if no update is needed.
+ *
+ * Times out after 5 seconds and fails silently on network errors.
  */
 async function checkGitHub(): Promise<ReleaseInfo | null> {
   try {
@@ -153,7 +124,6 @@ async function checkGitHub(): Promise<ReleaseInfo | null> {
  * app version. Returns release info if a newer, non-dismissed version is
  * available, or null if no update is needed.
  *
- * Tries apk.lovix.com first, then falls back to GitHub API.
  * Times out after 5 seconds and fails silently on network errors.
  */
 export async function checkForUpdate(): Promise<ReleaseInfo | null> {
@@ -164,10 +134,7 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
   }
   console.log('[updateCheck] checkForUpdate: current version =', CURRENT_VERSION);
 
-  // Try apk.lovix.com first, then GitHub
-  let release: ReleaseInfo | null = null;
-  release = await checkApkServer();
-  if (!release) release = await checkGitHub();
+  const release = await checkGitHub();
   if (!release) return null;
 
   // Compare versions — only show if the release is newer
@@ -191,8 +158,6 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
  * Force check for updates, ignoring any previous dismissal.
  * Used by the "Check for updates" button in Settings → About so the user
  * always sees the modal when they manually request it.
- *
- * Tries apk.lovix.com first, then falls back to GitHub API.
  */
 export async function forceCheckForUpdate(): Promise<ReleaseInfo | null> {
   // Development builds don't check for updates
@@ -202,10 +167,7 @@ export async function forceCheckForUpdate(): Promise<ReleaseInfo | null> {
   }
   console.log('[updateCheck] forceCheckForUpdate: current version =', CURRENT_VERSION);
 
-  // Try apk.lovix.com first, then GitHub
-  let release: ReleaseInfo | null = null;
-  release = await checkApkServer();
-  if (!release) release = await checkGitHub();
+  const release = await checkGitHub();
   if (!release) return null;
 
   // Compare versions — only show if the release is newer

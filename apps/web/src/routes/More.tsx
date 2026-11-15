@@ -483,8 +483,7 @@ export function More() {
               </div>
             ))}
           </dl>
-          {/* TODO: Update banner hidden — redirects to GitHub on TV devices.
-              Re-enable when apk.lovix.com download server is ready. */}
+          {/* TODO: Update banner hidden — redirects to GitHub on TV devices. */}
           {/* What's new in this version */}
           {version && (
             <div className="mt-3 border-t border-rule pt-3">
@@ -503,8 +502,7 @@ export function More() {
               </button>
             </div>
           )}
-          {/* TODO: Check for updates button hidden — update system redirects to GitHub.
-              Re-enable when apk.lovix.com download server is ready. */}
+          {/* TODO: Check for updates button hidden — update system redirects to GitHub. */}
           <DebugSetting />
         </Pane>
       ),

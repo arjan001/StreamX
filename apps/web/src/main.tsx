@@ -486,8 +486,6 @@ function Gate({ children }: { children: React.ReactNode }) {
   /*
    * TODO: Update check disabled — the update system redirects users to GitHub
    * on TV devices, exposing the source code repository.
-   *
-   * Re-enable after setting up apk.lovix.com as the APK download server.
    * The checkUpdate callback and all three useEffect hooks below are commented out.
    */
   /*

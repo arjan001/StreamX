@@ -1,18 +1,16 @@
 # Changelog
 
-## 1.64.18 (2026-11-15)
+## 1.64.19 (2026-11-15)
 
-### Update System
+### CI/CD
 
-- Temporarily disabled the update banner and "Check for updates" button — the download flow redirected TV users to the GitHub repository, exposing the source code.
-- Added support for `apk.lovix.com` as a dedicated APK download server — the app now checks this server first, then falls back to GitHub.
-- CI workflow updated to deploy APKs to the server via SSH instead of GitHub Pages.
-- The update system will be re-enabled once the apk.lovix.com server is configured and DNS is propagated.
+- Restored GitHub Pages deployment for APK download links — all 4 APK variants (ARM64, ARMv7, x86_64, Universal) are deployed to `https://arjan001.github.io/StreamX/`.
+- Removed all `apk.lovix.com` server code and references — the update check uses only the GitHub API.
+- Update buttons remain hidden in the app to avoid redirecting TV users to GitHub.
 
 ### Notes
 
 - The "What's new" button in Settings → About still works and shows the changelog for the current version.
-- Server setup instructions are in `lvx/APK_SERVER_SETUP.md`.
 
 ## 1.64.17 (2026-11-15)
 
