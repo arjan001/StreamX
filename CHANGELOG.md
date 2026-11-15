@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.64.22 (2026-11-15)
+
+### Update System
+
+- Removed the GitHub redirect fallback from the update modal — when APK download fails, the user now sees a "Download failed" message with a "Try again" button instead of being redirected to the GitHub release page. This ensures the source code repository is never exposed to end users.
+
+### CI/CD
+
+- GitHub Pages deployment remains disabled for the private repository. APKs are distributed via GitHub Release assets only.
+
 ## 1.64.21 (2026-11-15)
 
 ### CI/CD

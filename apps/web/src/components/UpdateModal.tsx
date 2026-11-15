@@ -30,6 +30,7 @@ export function UpdateModal({
   const panel = useRef<HTMLDivElement | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (release !== null && panel.current !== null) focusFirst(panel.current);
@@ -41,6 +42,7 @@ export function UpdateModal({
     if (!url) return;
     setDownloading(true);
     setDownloaded(false);
+    setError(false);
 
     try {
       // Fetch the APK as a blob and trigger download via a temporary blob URL.
@@ -61,11 +63,11 @@ export function UpdateModal({
       setDownloading(false);
       setDownloaded(true);
     } catch {
-      // If fetch fails (e.g., CORS), fall back to window.location.href
-      // which will trigger the browser's download manager
-      window.location.href = url;
+      // Download failed — do NOT redirect to GitHub.
+      // Show an error message so the user can try again.
       setDownloading(false);
-      setDownloaded(true);
+      setDownloaded(false);
+      setError(true);
     }
   }, [release, downloading]);
 
@@ -118,7 +120,20 @@ export function UpdateModal({
         )}
 
         <div className="mt-5">
-          {downloaded ? (
+          {error ? (
+            <div className="mb-3 flex items-center gap-3 rounded-lg border border-red-400/30 bg-red-500/8 px-4 py-3">
+              <span className="text-[length:var(--t-md)] font-semibold text-red-300 tv:text-[length:var(--t-lg)]">
+                Download failed
+              </span>
+              <button
+                type="button"
+                onClick={() => { setError(false); startDownload(); }}
+                className="ml-auto card-hover tap rounded-md bg-red-400/20 px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-red-300"
+              >
+                Try again
+              </button>
+            </div>
+          ) : downloaded ? (
             <div className="mb-3 flex items-center gap-3 rounded-lg border border-tally/30 bg-tally/8 px-4 py-3">
               <Download className="h-5 w-5 shrink-0 text-ground" aria-hidden />
               <div>
