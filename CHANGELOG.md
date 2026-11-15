@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.64.7 (2026-11-15)
+
+### Removed
+- Removed all server-side error logging (errorReports module, heartbeat, batch log sending) — the app no longer sends error logs or heartbeats to the server.
+- Removed the "Collect errors from apps" toggle from admin settings.
+
+### CI & Build
+- Removed GitHub Pages deployment workflow that was failing on every run because the repository was set to private. The APK is distributed via GitHub Releases, so Pages was not needed.
+
 ## 1.64.6 (2026-11-15)
 
 ### Update System

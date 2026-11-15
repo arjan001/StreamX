@@ -1,25 +1,23 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Download, X } from 'lucide-react';
-import { useSkin } from '../lib/skin';
 import { focusFirst } from '../lib/spatialNav';
 import type { ReleaseInfo } from '../lib/updateCheck';
 import { getUpdateRelease, setUpdateRelease, subscribeUpdateRelease } from '../lib/updateState';
 import { dismissVersion } from '../lib/updateCheck';
 
 /**
- * Slim update banner — sits below the header, above the page content.
+ * Top update banner — sits at the very top of the app, above the navbar.
  *
- * Replaces the modal popup: a thin bar with "Update available" text, the
- * version number, an "Update" button, and a dismiss (X) button. When the
- * user clicks "Update", the APK is downloaded silently in the background,
- * similar to how the Play Store works.
+ * A slim bar showing "UPDATE" label with an Update button and X dismiss button.
+ * When the user clicks Update, the APK is downloaded silently in the background,
+ * similar to how the Play Store works. After download, the banner shows a
+ * confirmation message.
  *
- * The banner is always in flow (not floating), so it pushes content down
+ * The banner is always in flow (not floating), so it pushes everything down
  * rather than covering it.
  */
 export function UpdateBanner() {
   const release = useSyncExternalStore(subscribeUpdateRelease, getUpdateRelease, () => null);
-  const modern = useSkin().shell === 'modern';
   const panel = useRef<HTMLDivElement | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
@@ -86,17 +84,14 @@ export function UpdateBanner() {
     <div
       ref={panel}
       data-nav-scope
-      className={`relative z-30 flex items-center gap-3 px-4 py-2
-        ${modern
-          ? 'bg-tally/10 backdrop-blur-sm border-b border-tally/20'
-          : 'bg-tally/10 border-b border-tally/20'
-        }`}
+      className="relative z-50 flex items-center justify-between gap-3 px-4 py-2
+        bg-tally/10 border-b border-tally/20"
     >
-      {/* Left: icon + text */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      {/* Left: UPDATE label */}
+      <div className="flex items-center gap-2 min-w-0">
         <Download className="h-4 w-4 shrink-0 text-tally" aria-hidden />
-        <span className="text-[length:var(--t-sm)] font-medium text-tally truncate">
-          Update available — v{release.version}
+        <span className="text-[length:var(--t-sm)] font-semibold text-tally">
+          UPDATE
         </span>
       </div>
 

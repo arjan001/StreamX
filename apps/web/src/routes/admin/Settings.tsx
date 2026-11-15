@@ -101,27 +101,6 @@ export function Settings({ data, onSaved }: { data: Overview; onSaved: () => voi
             on={cfg['deviceRelayOff'] === true}
             onChange={(v) => set('deviceRelayOff', v)}
           />
-          {/*
-            "Keep the library on the device by default" was here, and it was a
-            switch with nothing on the other end of it: `localCatalogueDefault`
-            was written to the config document and read by no line of the app.
-            It could not have been otherwise since 2026-09-03, when the server
-            catalogue was removed — the library is on the device for everyone,
-            always, and there is no second behaviour for a switch to choose
-            between. Removed rather than wired, because wiring it would mean
-            building back the thing it used to turn off.
-          */}
-          {/* Telemetry, so it says what it collects rather than only what it is
-              for. An operator turning this on is deciding for other people's
-              televisions, and the hint is the only place that is stated. */}
-          <Toggle
-            label="Collect errors from apps"
-            hint={'Apps send their errors here by themselves, a few at a time, instead of waiting '
-              + 'for somebody to send a report. Error lines only — never a password or what anyone '
-              + 'watched — kept for seven days and shown under Errors.'}
-            on={cfg['errorReports'] === true}
-            onChange={(v) => set('errorReports', v)}
-          />
 
           <div className="flex flex-wrap items-center gap-3 lg:col-span-2">
             <Button variant="primary" onClick={() => void save()} disabled={state === 'saving'}>

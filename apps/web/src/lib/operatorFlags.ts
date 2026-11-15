@@ -1,8 +1,8 @@
 /**
  * Switches an operator sets once, for every television on the installation.
  *
- * The value comes from the config document `errorReports.ts` and `UpdateGate`
- * read (lib/appConfig.ts): fetched at boot, and again when the app comes back to
+ * The value comes from the config document that `UpdateGate` reads
+ * (lib/appConfig.ts): fetched at boot, and again when the app comes back to
  * the front after six hours, so a change reaches a television that is already
  * switched on without waiting for a restart it may not get for weeks.
  */

@@ -25,7 +25,6 @@ import { installKeys } from './lib/keys';
 import { installTizenKeys } from './lib/tizenKeys';
 import { installWebosKeys } from './lib/webosKeys';
 import { installDebugCapture } from './lib/debugLog';
-import { installErrorReports } from './lib/errorReports';
 import { installSlowPress } from './lib/slowPress';
 import { installSoftKeyboard } from './lib/softKeyboard';
 import { resumeRoute } from './lib/resume';
@@ -47,14 +46,12 @@ import { AddAccountDialog } from './components/AddAccountDialog';
 import { ExpiredDialog } from './components/ExpiredDialog';
 import { EmptySource } from './components/EmptySource';
 import { ExitDialog } from './components/ExitDialog';
-import { UpdateModal } from './components/UpdateModal';
 import { addAccountOpen, closeAddAccount, subscribeAddAccount } from './lib/addAccount';
 import { onExitAsk } from './lib/nativeBack';
 import { isNativeShell } from './lib/direct';
 import { startAccountChecks } from './lib/accountCheck';
-import { checkForUpdate, dismissVersion, forceCheckForUpdate } from './lib/updateCheck';
-import type { ReleaseInfo } from './lib/updateCheck';
-import { getUpdateRelease, setUpdateRelease, subscribeUpdateRelease } from './lib/updateState';
+import { checkForUpdate } from './lib/updateCheck';
+import { setUpdateRelease, subscribeUpdateRelease } from './lib/updateState';
 
 /*
  * Routes load after first paint.
@@ -310,12 +307,8 @@ async function boot(): Promise<void> {
   /* The debug log's hooks — console, uncaught errors, failed fetches — before
      anything that could fail has run. See lib/debugLog.ts. */
   installDebugCapture();
-  /* And, if an operator has switched it on, the thing that posts those errors
-     here a few at a time instead of waiting for somebody to find the PIN.
-     Subscribes immediately; sends nothing until the config says so. */
-  installErrorReports();
-  /* And a remote press that took seconds, with what the page was doing — one
-     of the lines those reports carry. See lib/slowPress.ts. */
+  /* And a remote press that took seconds, with what the page was doing.
+     See lib/slowPress.ts. */
   installSlowPress();
   /* And the one that keeps a text field above the soft keyboard. */
   installSoftKeyboard();
@@ -493,14 +486,10 @@ function Gate({ children }: { children: React.ReactNode }) {
   /*
    * New release check — after the welcome door closes, not before.
    *
-   * The banner sits below the header, not over sign-in. It checks the GitHub
-   * API for the latest stable release, compares versions, and shows the update
-   * banner if a newer, non-dismissed release exists.
-   *
+   * The banner at the top of the app handles the automatic notification.
    * Results are published to the shared updateState store so the UpdateBanner
    * in Chrome picks them up without prop drilling.
    */
-  const updateRelease = useSyncExternalStore(subscribeUpdateRelease, getUpdateRelease, () => null);
   const checkUpdate = useCallback(() => {
     void checkForUpdate().then((r) => {
       if (r !== null) setUpdateRelease(r);
@@ -542,11 +531,6 @@ function Gate({ children }: { children: React.ReactNode }) {
     }, 3_600_000);
     return () => window.clearInterval(timer);
   }, [welcome, checkUpdate]);
-
-  const dismissUpdate = useCallback(() => {
-    if (updateRelease !== null) dismissVersion(updateRelease.version);
-    setUpdateRelease(null);
-  }, [updateRelease]);
 
   /*
    * When the library changes, every answer about it is stale.
@@ -742,12 +726,10 @@ function Gate({ children }: { children: React.ReactNode }) {
       {/* Never over the door either — see `exiting` above. The registration already
           refuses while the door is open; this covers the frame in between. */}
       {exiting && !welcome && <ExitDialog onCancel={cancelExit} />}
-      {/* New release — the banner in Chrome handles the automatic notification.
-          The modal is kept only for the manual "Check for updates" button in
-          Settings → About, which uses forceCheckForUpdate to bypass dismiss. */}
-      {!welcome && !adding && !exiting && (
-        <UpdateModal release={updateRelease} onDismiss={dismissUpdate} />
-      )}
+      {/* New release — the banner in Chrome handles the automatic notification
+          at the top of the app. The UpdateModal is no longer shown on the
+          landing page; it is kept only in Settings → About (More.tsx) where
+          the user can manually check for updates and view the changelog. */}
     </>
   );
 }

@@ -1644,6 +1644,10 @@ export function Chrome({ children }: { children: React.ReactNode }) {
         — painted straight over the bottom tab bar. An element that is part of the
         frame must not be something content can cover.
       */}
+      {/* Update banner — sits at the very top, above the navbar. Draws nothing
+          unless a newer release is available. */}
+      <UpdateBanner />
+
       {!shellHidden && (
       <header
         ref={headRef}
@@ -1899,10 +1903,6 @@ export function Chrome({ children }: { children: React.ReactNode }) {
       {/* The "N items stored on this device" banner used to sit here. It
           reported our own bookkeeping - how many rows were downloaded and
           when - to someone who came to watch television. */}
-
-      {/* Update banner — sits below the header, above the page. Draws nothing
-          unless a newer release is available. */}
-      <UpdateBanner />
 
       {/* Keyed on the path so a route change is a movement rather than a
           repaint. 0.22s: long enough to read as intentional, short enough that
