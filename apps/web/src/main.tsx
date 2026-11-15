@@ -484,12 +484,13 @@ function Gate({ children }: { children: React.ReactNode }) {
   const cancelExit = useCallback(() => setExiting(false), []);
 
   /*
-   * New release check — after the welcome door closes, not before.
+   * TODO: Update check disabled — the update system redirects users to GitHub
+   * on TV devices, exposing the source code repository.
    *
-   * The banner at the top of the app handles the automatic notification.
-   * Results are published to the shared updateState store so the UpdateBanner
-   * in Chrome picks them up without prop drilling.
+   * Re-enable after setting up apk.lovix.com as the APK download server.
+   * The checkUpdate callback and all three useEffect hooks below are commented out.
    */
+  /*
   const checkUpdate = useCallback(() => {
     void checkForUpdate().then((r) => {
       if (r !== null) setUpdateRelease(r);
@@ -500,11 +501,6 @@ function Gate({ children }: { children: React.ReactNode }) {
     checkUpdate();
   }, [welcome, checkUpdate]);
 
-  /*
-   * Also check after the library becomes ready — a new account download or
-   * a catalog rebuild means the user is about to start watching, which is
-   * the right moment to show an available update.
-   */
   useEffect(() => {
     let seen: string | null = `${localStatus().state}:${localStatus().builtAt ?? 'none'}`;
     return subscribeLocal((st) => {
@@ -512,18 +508,12 @@ function Gate({ children }: { children: React.ReactNode }) {
       const gen = `${st.state}:${st.builtAt ?? 'none'}`;
       if (gen === seen) return;
       seen = gen;
-      // Delay slightly so the catalog-ready invalidations paint first
       window.setTimeout(() => {
         if (!welcome) checkUpdate();
       }, 2000);
     });
   }, [welcome, checkUpdate]);
 
-  /*
-   * Periodic check — every hour, re-check for updates so a dismissed banner
-   * reappears if the user is still running an old version. Only runs when
-   * the app is in the foreground and nothing is playing.
-   */
   useEffect(() => {
     if (welcome) return undefined;
     const timer = window.setInterval(() => {
@@ -531,6 +521,7 @@ function Gate({ children }: { children: React.ReactNode }) {
     }, 3_600_000);
     return () => window.clearInterval(timer);
   }, [welcome, checkUpdate]);
+  */
 
   /*
    * When the library changes, every answer about it is stale.

@@ -483,25 +483,8 @@ export function More() {
               </div>
             ))}
           </dl>
-          {/* Update banner — shown when a new release is found */}
-          {aboutRelease !== null && (
-            <div className="mt-3 flex items-center justify-between rounded-lg border border-tally/30 bg-tally/8 px-3 py-2.5">
-              <div className="min-w-0">
-                <p className="font-mono text-[length:var(--t-xs)] text-tally">
-                  New release available v{aboutRelease.version}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAboutRelease(aboutRelease)}
-                className="tap ml-3 flex items-center gap-1.5 rounded-md bg-tally px-2.5 py-1 font-mono
-                           text-[length:var(--t-2xs)] font-semibold text-ground transition-colors hover:bg-tally/90"
-              >
-                <Download className="h-3.5 w-3.5" />
-                UPDATE
-              </button>
-            </div>
-          )}
+          {/* TODO: Update banner hidden — redirects to GitHub on TV devices.
+              Re-enable when apk.lovix.com download server is ready. */}
           {/* What's new in this version */}
           {version && (
             <div className="mt-3 border-t border-rule pt-3">
@@ -520,23 +503,8 @@ export function More() {
               </button>
             </div>
           )}
-          {/* Check for updates button */}
-          <div className="mt-3 border-t border-rule pt-3">
-            <button
-              type="button"
-              disabled={aboutChecking}
-              onClick={checkAboutUpdate}
-              className="card-hover tap flex w-full items-center justify-between gap-3 px-1 py-2"
-            >
-              <div className="flex items-center gap-3">
-                <RefreshCw className={`h-4 w-4 shrink-0 text-ink-3 ${aboutChecking ? 'animate-spin' : ''}`} />
-                <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
-                  {aboutChecking ? 'Checking…' : 'Check for updates'}
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-ink-3" />
-            </button>
-          </div>
+          {/* TODO: Check for updates button hidden — update system redirects to GitHub.
+              Re-enable when apk.lovix.com download server is ready. */}
           <DebugSetting />
         </Pane>
       ),

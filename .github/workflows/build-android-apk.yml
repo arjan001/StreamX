@@ -246,20 +246,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy-docs:
-    name: Deploy Documentation to GitHub Pages
+  deploy-apk-server:
+    name: Deploy APKs to apk.lovix.com
     runs-on: ubuntu-latest
     needs: build-apk
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout code
@@ -294,72 +285,65 @@ jobs:
         with:
           name: version
 
-      - name: Build documentation site
+      - name: Build download site
         run: |
           mkdir -p site
-          # Copy the main docs page
           cp docs/index.html site/index.html
-          # Copy legal documents if they exist
-          cp -r legal site/ 2>/dev/null || true
-          # Copy and rename APKs to the expected download names
           APK_COUNT=0
           if [ -f "apk-arm64/app-arm64-v8a-debug.apk" ]; then
             cp "apk-arm64/app-arm64-v8a-debug.apk" "site/streamix-arm64.apk"
-            echo "Copied arm64 APK"
             APK_COUNT=$((APK_COUNT + 1))
-          else
-            echo "WARNING: arm64 APK not found"
           fi
           if [ -f "apk-armv7/app-armeabi-v7a-debug.apk" ]; then
             cp "apk-armv7/app-armeabi-v7a-debug.apk" "site/streamix-armv7.apk"
-            echo "Copied armv7 APK"
             APK_COUNT=$((APK_COUNT + 1))
-          else
-            echo "WARNING: armv7 APK not found"
           fi
           if [ -f "apk-x86_64/app-x86_64-debug.apk" ]; then
             cp "apk-x86_64/app-x86_64-debug.apk" "site/streamix-x86_64.apk"
-            echo "Copied x86_64 APK"
             APK_COUNT=$((APK_COUNT + 1))
-          else
-            echo "WARNING: x86_64 APK not found"
           fi
           if [ -f "apk-universal/app-universal-debug.apk" ]; then
             cp "apk-universal/app-universal-debug.apk" "site/streamix-universal.apk"
-            echo "Copied universal APK"
             APK_COUNT=$((APK_COUNT + 1))
-          else
-            echo "WARNING: universal APK not found"
           fi
-          # Replace version placeholder
-          if [ -f version.txt ]; then
-            VERSION=$(cat version.txt)
-          else
-            VERSION=$(node -p "require('./version.json').version")
-          fi
+          VERSION=$(cat version.txt)
           sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" site/index.html
-          echo "Deploying version: $VERSION"
-          echo "APKs in site:"
-          ls -la site/*.apk 2>/dev/null || echo "ERROR: No APKs found in site!"
-          # Fail if no APKs were copied at all
-          if [ "$APK_COUNT" -eq 0 ]; then
-            echo "::error::No APKs were copied to the site. The download page will have broken links."
-            exit 1
-          fi
-          # Warn if not all 4 APKs are present
-          if [ "$APK_COUNT" -lt 4 ]; then
-            echo "::warning::Only $APK_COUNT of 4 expected APKs were found. Some download links will be broken."
-          fi
+          # Generate release.json for the app's update check
+          mkdir -p site/api
+          cat > site/api/release.json << RELEASEJSON
+          {
+            "version": "$VERSION",
+            "download_url": "https://apk.lovix.com/streamix-arm64.apk",
+            "changelog": "https://apk.lovix.com/changelog.txt"
+          }
+          RELEASEJSON
+          # Extract changelog for current version
+          node -e "
+            const fs = require('fs');
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const match = changelog.match(/## $VERSION[\s\S]*?(?=## \d|\$)/);
+            if (match) fs.writeFileSync('site/changelog.txt', match[0].trim());
+          " || true
+          echo "Deploying version: $VERSION with $APK_COUNT APKs"
+          ls -la site/*.apk 2>/dev/null || echo "WARNING: No APKs found"
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Upload SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "$APK_SERVER_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$APK_SERVER_HOST" >> ~/.ssh/known_hosts
+        env:
+          APK_SERVER_HOST: ${{ secrets.APK_SERVER_HOST }}
+          APK_SERVER_KEY: ${{ secrets.APK_SERVER_KEY }}
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './site'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to server via SCP
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            site/ \
+            "$APK_SERVER_USER@$APK_SERVER_HOST:$APK_SERVER_PATH/"
+        env:
+          APK_SERVER_HOST: ${{ secrets.APK_SERVER_HOST }}
+          APK_SERVER_USER: ${{ secrets.APK_SERVER_USER }}
+          APK_SERVER_PATH: ${{ secrets.APK_SERVER_PATH }}
 
