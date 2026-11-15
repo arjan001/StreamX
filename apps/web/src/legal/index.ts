@@ -11,6 +11,7 @@ import terms from '../../../../legal/terms.md?raw';
 import privacy from '../../../../legal/privacy.md?raw';
 import copyright from '../../../../legal/copyright.md?raw';
 import licenses from '../../../../legal/licenses.md?raw';
+import changelogRaw from '../../../../CHANGELOG.md?raw';
 
 export type LegalPage = 'terms' | 'privacy' | 'copyright' | 'licenses';
 export const LEGAL_PAGES: LegalPage[] = ['terms', 'privacy', 'copyright', 'licenses'];
@@ -32,3 +33,18 @@ export function legalHtml(page: LegalPage): string {
 
 /** Version and build for the About list. A development build says so. */
 export const appVersion = (): { version: string; build: string } => ({ version: VERSION, build: BUILD });
+
+/**
+ * Extract the changelog section for a specific version from the bundled CHANGELOG.md.
+ * Returns the markdown body for that version, or null if not found.
+ */
+export function getChangelogForVersion(version: string): string | null {
+  // Match "## 1.64.13 (2026-11-15)" pattern
+  const re = new RegExp(`^##\\s+${escapeRegex(version)}\\s+\\(\\d{4}-\\d{2}-\\d{2}\\)\\s*$([\\s\\S]*?)(?=^##\\s|$)`, 'm');
+  const m = re.exec(changelogRaw);
+  return m?.[1]?.trim() ?? null;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

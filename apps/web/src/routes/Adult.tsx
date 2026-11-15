@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, LayoutGrid, List, ChevronDown, User } from 'lucide-react';
+import { Search, LayoutGrid, List, ChevronDown, User, X } from 'lucide-react';
 import { TagsRail } from '../components/TagsRail';
 import { TitleGrid, useBrowseQuery } from '../components/TitleGrid';
 import { Nothing } from '../components/Nothing';
@@ -252,47 +252,50 @@ export function Adult() {
             )}
           </div>
 
-          {/* Gender expandable dropdown — like FilterBar genre toggle */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              aria-expanded={genderOpen}
-              aria-label={genderOpen ? 'Hide gender filters' : 'Show gender filters'}
-              onClick={() => setGenderOpen(!genderOpen)}
-              className={`flex items-center gap-1 border px-2 py-1 font-mono text-[length:var(--t-2xs)] tracking-wider
-                transition-colors touch:py-2
-                ${genderOpen || selectedSex !== null
-                  ? 'border-tally text-tally'
-                  : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink focus-visible:border-focus focus-visible:text-focus'}`}
-            >
-              <span>Gender{selectedSex ? ` · ${selectedSex}` : ''}</span>
-              <ChevronDown className={`h-3 w-3 transition-transform ${genderOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {genderOpen && (
-              <div className="absolute right-0 top-7 z-50 flex flex-col gap-1 rounded-lg border border-rule
-                bg-panel/95 p-2 shadow-lg backdrop-blur">
+          {/* Gender toggle — inline chips row, matching FilterBar genre style */}
+          <button
+            type="button"
+            aria-expanded={genderOpen}
+            aria-label={genderOpen ? 'Hide gender filters' : 'Show gender filters'}
+            onClick={() => setGenderOpen(!genderOpen)}
+            className={`dest tap flex shrink-0 items-center gap-1.5 border px-2 py-1 font-mono
+              text-[length:var(--t-2xs)] tracking-wider transition-colors touch:py-2
+              ${genderOpen || selectedSex !== null
+                ? 'border-tally text-tally'
+                : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink focus-visible:border-focus focus-visible:text-focus'}`}
+          >
+            <span>Gender{selectedSex ? ` · ${selectedSex}` : ''}</span>
+            <ChevronDown className={`h-3 w-3 transition-transform ${genderOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {genderOpen && (
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => { handleSexSelect(null); setGenderOpen(false); }}
+                className={`shrink-0 whitespace-nowrap border px-2 py-0.5 font-mono text-[length:var(--t-2xs)] transition-colors
+                  touch:px-2.5 touch:py-1.5 touch:text-[length:var(--t-xs)]
+                  ${!selectedSex
+                    ? 'border-tally bg-tally/10 text-tally'
+                    : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}
+              >
+                All
+              </button>
+              {genderOptions.map((g) => (
                 <button
+                  key={g.id}
                   type="button"
-                  onClick={() => { handleSexSelect(null); setGenderOpen(false); }}
-                  className={`whitespace-nowrap px-2 py-1 text-left text-[length:var(--t-2xs)] rounded
-                    ${!selectedSex ? 'bg-tally text-ground' : 'text-ink hover:bg-panel/60'}`}
+                  onClick={() => { handleSexSelect(g.id); setGenderOpen(false); }}
+                  className={`shrink-0 whitespace-nowrap border px-2 py-0.5 font-mono text-[length:var(--t-2xs)] transition-colors
+                    touch:px-2.5 touch:py-1.5 touch:text-[length:var(--t-xs)]
+                    ${selectedSex === g.id
+                      ? 'border-tally bg-tally/10 text-tally'
+                      : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}
                 >
-                  All genders
+                  {g.label}
                 </button>
-                {genderOptions.map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => { handleSexSelect(g.id); setGenderOpen(false); }}
-                    className={`whitespace-nowrap px-2 py-1 text-left text-[length:var(--t-2xs)] rounded
-                      ${selectedSex === g.id ? 'bg-tally text-ground' : 'text-ink hover:bg-panel/60'}`}
-                  >
-                    {g.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* View mode toggle */}
           <button

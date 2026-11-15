@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Bug, ChevronRight, Cpu, Database, Download, Palette, RefreshCw, Scale, SlidersHorizontal, Star, Tv, Users,
+  Bug, ChevronRight, Cpu, Database, Download, Info, Palette, RefreshCw, Scale, SlidersHorizontal, Star, Tv, Users, X,
 } from 'lucide-react';
 import { BRAND } from '../brand';
 import {
@@ -16,7 +16,7 @@ import { useSkin } from '../lib/skin';
 import { columnArrow } from '../lib/columns';
 import { isTypingTarget, useKeyLayer, type Binding } from '../lib/keys';
 import { useOkToType } from '../lib/okToType';
-import { LEGAL_PAGES, LEGAL_TITLES, appVersion } from '../legal';
+import { LEGAL_PAGES, LEGAL_TITLES, appVersion, getChangelogForVersion } from '../legal';
 import { dismissVersion, forceCheckForUpdate } from '../lib/updateCheck';
 import type { ReleaseInfo } from '../lib/updateCheck';
 import { UpdateModal } from '../components/UpdateModal';
@@ -363,6 +363,9 @@ export function More() {
     setAboutRelease(null);
   };
 
+  // "What's new" modal state
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+
   const version = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? '';
   const build = (import.meta.env?.VITE_APP_BUILD as string | undefined) ?? '';
   const packaged = (import.meta.env?.VITE_PLATFORM as string | undefined) === 'capacitor';
@@ -496,6 +499,24 @@ export function More() {
               >
                 <Download className="h-3.5 w-3.5" />
                 UPDATE
+              </button>
+            </div>
+          )}
+          {/* What's new in this version */}
+          {version && (
+            <div className="mt-3 border-t border-rule pt-3">
+              <button
+                type="button"
+                onClick={() => setWhatsNewOpen(true)}
+                className="card-hover tap flex w-full items-center justify-between gap-3 px-1 py-2"
+              >
+                <div className="flex items-center gap-3">
+                  <Info className="h-4 w-4 shrink-0 text-ink-3" />
+                  <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
+                    What's new in v{version}
+                  </span>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-ink-3" />
               </button>
             </div>
           )}
@@ -709,6 +730,49 @@ export function More() {
     </div>
     {aboutRelease !== null && (
       <UpdateModal release={aboutRelease} onDismiss={dismissAboutUpdate} />
+    )}
+    {/* "What's new" changelog modal */}
+    {whatsNewOpen && (
+      <div data-nav-contain className="fixed inset-0 z-[71] flex items-center justify-center bg-black/60 anim-fade"
+        onClick={() => setWhatsNewOpen(false)}>
+        <div className="relative mx-4 w-full max-w-[28rem] rounded-xl border border-rule bg-panel shadow-2xl
+          tv:max-w-[36rem]" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-rule px-4 py-3 tv:px-6">
+            <h3 className="text-[length:var(--t-md)] font-semibold text-ink tv:text-[length:var(--t-lg)]">
+              What's new in v{version}
+            </h3>
+            <button type="button" onClick={() => setWhatsNewOpen(false)}
+              className="text-ink-3 hover:text-ink" aria-label="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto px-4 py-4 tv:px-6 tv:py-5">
+            {getChangelogForVersion(version) ? (
+              <div className="space-y-3 font-mono text-[length:var(--t-xs)] text-ink-2 tv:text-[length:var(--t-sm)]">
+                {getChangelogForVersion(version)!.split('\n').map((line, i) => {
+                  // Skip empty lines
+                  if (line.trim() === '') return <div key={i} className="h-2" />;
+                  // Section headers
+                  if (line.startsWith('###')) {
+                    return <h4 key={i} className="mt-3 text-[length:var(--t-sm)] font-semibold text-ink tv:text-[length:var(--t-md)]">
+                      {line.replace(/^#+\s*/, '')}
+                    </h4>;
+                  }
+                  // Bullet items
+                  if (line.startsWith('- ')) {
+                    return <p key={i} className="pl-2">{line.replace(/^- /, '• ')}</p>;
+                  }
+                  return <p key={i}>{line}</p>;
+                })}
+              </div>
+            ) : (
+              <p className="font-mono text-[length:var(--t-xs)] text-ink-3 tv:text-[length:var(--t-sm)]">
+                No changelog available for this version.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
     )}
     </>
   );

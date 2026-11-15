@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.64.14 (2026-11-15)
+
+### Adult Section
+- Gender selector now matches the Movies/Series genre toggle style: a button that expands inline chips horizontally, replacing the floating dropdown.
+- Fixed CI overlay navigation test: removed floating z-50 gender dropdown that lacked focus behavior declaration.
+
+### About Page
+- Added "What's new in v{version}" button below version info — opens a modal showing the bundled changelog for the current version.
+- The changelog modal is accessible anytime, regardless of update check status, and adapts sizing for mobile and TV screens.
+
 ## 1.64.13 (2026-11-15)
 
 ### Adult Section Improvements
