@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.64.11 (2026-11-15)
+
+### CI & Build
+- Removed `continue-on-error: true` from the GitHub Pages deployment job — any workflow failure now properly stops the entire build instead of being silently ignored.
+- Improved APK deployment: the build now warns when some APK variants are missing (e.g., x86_64, universal) but only fails if no APKs are found at all, preventing false failures while still alerting to incomplete builds.
+
 ## 1.64.10 (2026-11-15)
 
 ### GitHub Pages Download Fix

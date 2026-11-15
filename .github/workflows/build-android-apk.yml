@@ -227,7 +227,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-apk
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    continue-on-error: true
 
     permissions:
       contents: read
@@ -264,29 +263,34 @@ jobs:
           echo "APKs downloaded from artifact:"
           ls -la apk/ 2>/dev/null || echo "WARNING: apk directory not found!"
           # Copy and rename APKs to the expected download names
+          APK_COUNT=0
           if [ -d "apk" ]; then
             # Debug APKs are named app-debug-<abi>.apk, rename to streamix-<abi>.apk
             if [ -f "apk/app-debug-arm64-v8a.apk" ]; then
               cp "apk/app-debug-arm64-v8a.apk" "site/streamix-arm64.apk"
               echo "Copied arm64 APK"
+              APK_COUNT=$((APK_COUNT + 1))
             else
               echo "WARNING: arm64 APK not found"
             fi
             if [ -f "apk/app-debug-armeabi-v7a.apk" ]; then
               cp "apk/app-debug-armeabi-v7a.apk" "site/streamix-armv7.apk"
               echo "Copied armv7 APK"
+              APK_COUNT=$((APK_COUNT + 1))
             else
               echo "WARNING: armv7 APK not found"
             fi
             if [ -f "apk/app-debug-x86_64.apk" ]; then
               cp "apk/app-debug-x86_64.apk" "site/streamix-x86_64.apk"
               echo "Copied x86_64 APK"
+              APK_COUNT=$((APK_COUNT + 1))
             else
               echo "WARNING: x86_64 APK not found"
             fi
             if [ -f "apk/app-debug-universal.apk" ]; then
               cp "apk/app-debug-universal.apk" "site/streamix-universal.apk"
               echo "Copied universal APK"
+              APK_COUNT=$((APK_COUNT + 1))
             else
               echo "WARNING: universal APK not found"
             fi
@@ -301,10 +305,14 @@ jobs:
           echo "Deploying version: $VERSION"
           echo "APKs in site:"
           ls -la site/*.apk 2>/dev/null || echo "ERROR: No APKs found in site!"
-          # Fail if no APKs were copied
-          if ! ls site/*.apk 1>/dev/null 2>&1; then
+          # Fail if no APKs were copied at all
+          if [ "$APK_COUNT" -eq 0 ]; then
             echo "::error::No APKs were copied to the site. The download page will have broken links."
             exit 1
+          fi
+          # Warn if not all 4 APKs are present
+          if [ "$APK_COUNT" -lt 4 ]; then
+            echo "::warning::Only $APK_COUNT of 4 expected APKs were found. Some download links will be broken."
           fi
 
       - name: Setup Pages
