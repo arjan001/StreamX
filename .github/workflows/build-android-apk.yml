@@ -263,12 +263,17 @@ jobs:
           cp docs/index.html site/index.html
           # Copy legal documents if they exist
           cp -r legal site/ 2>/dev/null || true
-          # Copy APKs to the site root
+          # Copy and rename APKs to the expected download names
           if [ -d "apk" ]; then
-            for apk in apk/*.apk; do
+            # Debug APKs are named app-debug-<abi>.apk, rename to streamix-<abi>.apk
+            [ -f "apk/app-debug-arm64-v8a.apk" ] && cp "apk/app-debug-arm64-v8a.apk" "site/streamix-arm64.apk"
+            [ -f "apk/app-debug-armeabi-v7a.apk" ] && cp "apk/app-debug-armeabi-v7a.apk" "site/streamix-armv7.apk"
+            [ -f "apk/app-debug-x86_64.apk" ] && cp "apk/app-debug-x86_64.apk" "site/streamix-x86_64.apk"
+            [ -f "apk/app-debug-universal.apk" ] && cp "apk/app-debug-universal.apk" "site/streamix-universal.apk"
+            # If renamed APKs exist, also copy them (in case build was changed)
+            for apk in apk/streamix-*.apk; do
               [ -f "$apk" ] || continue
-              filename=$(basename "$apk")
-              cp "$apk" "site/$filename"
+              cp "$apk" "site/"
             done
           fi
           # Replace version placeholder
@@ -279,7 +284,8 @@ jobs:
           fi
           sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" site/index.html
           echo "Deploying version: $VERSION"
-          ls -la site/
+          echo "APKs in site:"
+          ls -la site/*.apk 2>/dev/null || echo "WARNING: No APKs found in site!"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

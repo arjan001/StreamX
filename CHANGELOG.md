@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.64.9 (2026-11-15)
+
+### GitHub Pages APK Download Fix
+- Fixed GitHub Pages APK download links returning 404: the CI workflow now correctly renames the built APKs from `app-debug-*.apk` to `streamix-*.apk` so the download page links work.
+- All 4 APK variants (ARM64, ARMv7, x86_64, Universal) are now properly deployed to the GitHub Pages download site.
+
+### Debug Logging
+- The `subscribeErrors` function in `debugLog.ts` is preserved and ready for future integration with Sentry or Cloudflare error tracking.
+
 ## 1.64.8 (2026-11-15)
 
 ### GitHub Pages Restoration
