@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.64.13 (2026-11-15)
+
+### Adult Section Improvements
+- Search bar width reduced to 75% so gender filter and view toggle don't feel squeezed.
+- Gender filter converted to expandable dropdown (like Movies genre toggle) instead of a native select box.
+- Added cast rail below the filter bar: rounded cast images with initials fallback, clicking a cast member filters by their name.
+- Added search autocomplete with cast name suggestions — typing a performer's name shows matching actors and titles.
+- Expanded tag extraction keywords from ~80 to ~200+ covering more categories (body types, settings, scenarios, attributes, etc.).
+- Increased tag fetching from 300 to 500 items for better tag coverage.
+- Added error handling to prevent crashes when cast data is unavailable.
+
+### Bug Fixes
+- Fixed potential navy blue screen crash when navigating away and back to the Adult section.
+
 ## 1.64.12 (2026-11-15)
 
 ### CI Build Fix

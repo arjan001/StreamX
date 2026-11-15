@@ -33,7 +33,7 @@ export function TagsRail({ onTagSelect, selectedTags }: {
     queryKey: ['adult-tags', scope],
     queryFn: async (): Promise<Tag[]> => {
       // Fetch adult items with adultOnly flag to get all adult content
-      const items = localAllItems('movies', { ...scope, adultOnly: true, limit: 1000 });
+      const items = localAllItems('movies', { ...scope, adultOnly: true, limit: 2000 });
       if (items.length === 0) return [];
 
       // Phase 1: Extract tags from titles synchronously — no API calls needed
@@ -45,7 +45,7 @@ export function TagsRail({ onTagSelect, selectedTags }: {
       const batchSize = 10;
       const detailTagItems: Array<{ tags?: readonly string[] }> = [];
 
-      for (let i = 0; i < Math.min(items.length, 300); i += batchSize) {
+      for (let i = 0; i < Math.min(items.length, 500); i += batchSize) {
         const batch = items.slice(i, i + batchSize);
         const results = await Promise.allSettled(
           batch.map(item => api.movieDetail(item.id))
