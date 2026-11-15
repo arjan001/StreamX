@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.64.15 (2026-11-15)
+
+### Update Flow Improvements
+- Update banner now shows "NEW VERSION {version}" instead of just "UPDATE", so users always see which version is available.
+- Clicking "Update" opens a download progress modal with a spinning icon and percentage bar, instead of downloading silently in the background.
+- After download completes, an install prompt modal appears with "Install now" and "Later" buttons, mimicking Android's package installer dialog.
+- If download fails, the modal shows a "Try again" button instead of redirecting to Chrome.
+- The "Install now" button reuses the already-downloaded APK blob, so no network request or Chrome redirect occurs.
+
+### Bug Fixes
+- Removed the `window.location.href` fallback that was redirecting users to Chrome when APK download failed.
+- Blob URL is properly cleaned up when the banner unmounts, preventing memory leaks.
+
 ## 1.64.14 (2026-11-15)
 
 ### Adult Section
