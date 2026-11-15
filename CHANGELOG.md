@@ -1,5 +1,63 @@
 # Changelog
 
+## 1.64.17 (2026-11-15)
+
+### What's New
+
+This release brings a complete UI redesign, performance improvements, and bug fixes based on user feedback.
+
+### Navigation Redesign
+- Removed "Adult" from the main navigation menu and replaced it with a heart icon (♡) next to the profile icon.
+- The heart icon opens the Adult section — icon-only, no text label, matching the existing icon style.
+
+### Home Page
+- Removed the Adult card from the home screen. Five cards remain: Live TV, Sports TV, Movies, Series, and Replay.
+- Reduced the vertical gap between the home cards and the Continue Watching section for a tighter layout.
+- Removed the white border line under the header bar for a cleaner look.
+
+### Sports TV
+- Sports videos now fill the entire player area, eliminating the grey letterbox bars that obscured the bottom-right corner during football matches.
+
+### Performance
+- Tab navigation is now instant on first load: Live TV, Movies, and Series data are pre-fetched in the background after the library becomes ready.
+- Switching tabs no longer takes ~10 seconds — data is already cached before you navigate.
+
+### Search Improvements
+- Added autocomplete suggestions that appear as you type, showing content titles and actor names.
+- Typing a cast member's name shows both the actor suggestion and movies featuring that actor.
+- Clicking an actor suggestion filters results by that person.
+
+### Adult Section Overhaul
+- Redesigned the filter bar with a wide search bar, compact gender selector, and covers/tiles view toggle.
+- Gender selector matches the Movies/Series genre toggle style — inline expanding chips.
+- Added cast rail: rounded cast images with initials fallback; clicking a performer filters by their name.
+- Added search autocomplete with cast name suggestions.
+- Expanded tag extraction from ~80 to ~200+ adult-related keywords pulled from titles and descriptions.
+- Covers/tiles view toggle: portrait cards (2:3) or landscape cards (3:2).
+
+### Update System
+- Update banner sits at the very top of the app, showing "UPDATE" with version info inline.
+- Download progress displays directly on the banner strip — no popup modals interrupting your viewing.
+- After download, the "Install" button triggers Android's native package installer dialog.
+- The banner reappears every 10 minutes after dismissal until the update is installed.
+- "Check for updates" in Settings → About always shows the changelog modal, regardless of previous dismissal.
+- "What's new" button in About page shows the changelog for the current version anytime.
+
+### Login Persistence
+- Fixed login credentials being lost after APK update — session data now syncs from native storage on every boot.
+
+### Error Handling
+- Login failures now show structured error codes (E001–E006, N001–N003) with troubleshooting hints.
+- Refresh button shows phase-specific status messages: "Downloading channels", "Downloading movies", etc.
+
+### Bug Fixes
+- Fixed APK download flow — users are never redirected to the GitHub release page.
+- Fixed overlay navigation test failures in search and adult section overlays.
+- Fixed potential crashes when navigating away from and back to the Adult section.
+- Removed all server-side error logging — the app no longer sends error logs or heartbeats to the server.
+- Fixed GitHub Pages APK download links returning 404 errors.
+- Restored all 4 APK variants (ARM64, ARMv7, x86_64, Universal) in the CI build pipeline.
+
 ## 1.64.16 (2026-11-15)
 
 ### Update Banner Fix
