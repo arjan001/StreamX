@@ -1,6 +1,22 @@
 # Changelog
 
-## 1.64.19 (2026-11-15)
+## 1.64.20 (2026-11-15)
+
+### Performance Fix
+
+- Removed background pre-fetching of all tab data that was causing permanent black/navy-blue screens on some devices. Tab data now loads on first navigation instead of being fetched in the background after catalogue setup.
+
+### Sports TV
+
+- Confirmed the grey bottom-right area fix is in place — sports videos fill the entire player area with no letterbox bars.
+
+### Catchup
+
+- Investigated catchup playback — the code correctly uses archive playback with seek bar and duration. If catchup does not work, it is likely because the provider has not enabled archive for the channels in your subscription.
+
+### Fire TV Compatibility
+
+- The Universal APK includes ARM64 and ARMv7 architectures, which cover all Fire TV devices. The AndroidManifest declares `LEANBACK_LAUNCHER` and `leanback` feature for TV compatibility.
 
 ### CI/CD
 

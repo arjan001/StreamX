@@ -29,7 +29,7 @@ import { installSlowPress } from './lib/slowPress';
 import { installSoftKeyboard } from './lib/softKeyboard';
 import { resumeRoute } from './lib/resume';
 import { initLocal, localEnabled } from './lib/localCatalogue';
-import { forgetPagedLists, prefetchAllTabs } from './lib/usePagedItems.ts';
+import { forgetPagedLists } from './lib/usePagedItems.ts';
 import { hydrateQueries, loadSnapshot, persistQueries, registerWorker } from './lib/warm';
 import { closeDoorForExistingInstall, doorOpen, subscribeDoor } from './lib/firstRun';
 import { localStatus, refreshLiveList, subscribeLocal } from './lib/localCatalogue';
@@ -566,10 +566,6 @@ function Gate({ children }: { children: React.ReactNode }) {
       if (st.state === 'ready' || st.builtAt !== null) void (playing() ? checkBulkGuide() : ensureBulkGuide());
       /* And the feeds renamed since this library was built — lib/liveNames.ts. */
       if (st.state === 'ready') void loadLiveNames();
-      /* Warm the first page of every major tab so the first navigation paints
-         rows instead of a skeleton. Runs after the catalogue is ready, not
-         before — a prefetch against an empty store is wasted work. */
-      if (st.state === 'ready') void prefetchAllTabs(qc);
     });
   }, []);
 
@@ -591,23 +587,6 @@ function Gate({ children }: { children: React.ReactNode }) {
     return () => { window.clearTimeout(first); window.clearInterval(hourly); };
   }, []);
 
-  /*
-   * Pre-fetch the first page of every major tab so navigation is instant.
-   *
-   * This runs well after the first paint (the first seconds belong to the
-   * home page and the guide download). It is deliberately delayed so it does
-   * not compete with the requests that actually paint the screen. When the
-   * library was already ready at boot, the subscribeLocal callback above does
-   * not fire, so this is the path that warms the cache.
-   */
-  useEffect(() => {
-    const st = localStatus();
-    if (st.state !== 'ready') return;
-    const timer = window.setTimeout(() => {
-      if (!playing()) void prefetchAllTabs(qc);
-    }, 3_000);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   /*
    * The channel list, between the weekly checks: event and PPV feeds are renamed
