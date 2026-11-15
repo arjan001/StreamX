@@ -244,15 +244,12 @@ jobs:
 
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: apk-debug
           path: apk
-          merge-multiple: false
 
       - name: Download version
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: version
 
@@ -263,18 +260,36 @@ jobs:
           cp docs/index.html site/index.html
           # Copy legal documents if they exist
           cp -r legal site/ 2>/dev/null || true
+          # List APKs downloaded from artifact
+          echo "APKs downloaded from artifact:"
+          ls -la apk/ 2>/dev/null || echo "WARNING: apk directory not found!"
           # Copy and rename APKs to the expected download names
           if [ -d "apk" ]; then
             # Debug APKs are named app-debug-<abi>.apk, rename to streamix-<abi>.apk
-            [ -f "apk/app-debug-arm64-v8a.apk" ] && cp "apk/app-debug-arm64-v8a.apk" "site/streamix-arm64.apk"
-            [ -f "apk/app-debug-armeabi-v7a.apk" ] && cp "apk/app-debug-armeabi-v7a.apk" "site/streamix-armv7.apk"
-            [ -f "apk/app-debug-x86_64.apk" ] && cp "apk/app-debug-x86_64.apk" "site/streamix-x86_64.apk"
-            [ -f "apk/app-debug-universal.apk" ] && cp "apk/app-debug-universal.apk" "site/streamix-universal.apk"
-            # If renamed APKs exist, also copy them (in case build was changed)
-            for apk in apk/streamix-*.apk; do
-              [ -f "$apk" ] || continue
-              cp "$apk" "site/"
-            done
+            if [ -f "apk/app-debug-arm64-v8a.apk" ]; then
+              cp "apk/app-debug-arm64-v8a.apk" "site/streamix-arm64.apk"
+              echo "Copied arm64 APK"
+            else
+              echo "WARNING: arm64 APK not found"
+            fi
+            if [ -f "apk/app-debug-armeabi-v7a.apk" ]; then
+              cp "apk/app-debug-armeabi-v7a.apk" "site/streamix-armv7.apk"
+              echo "Copied armv7 APK"
+            else
+              echo "WARNING: armv7 APK not found"
+            fi
+            if [ -f "apk/app-debug-x86_64.apk" ]; then
+              cp "apk/app-debug-x86_64.apk" "site/streamix-x86_64.apk"
+              echo "Copied x86_64 APK"
+            else
+              echo "WARNING: x86_64 APK not found"
+            fi
+            if [ -f "apk/app-debug-universal.apk" ]; then
+              cp "apk/app-debug-universal.apk" "site/streamix-universal.apk"
+              echo "Copied universal APK"
+            else
+              echo "WARNING: universal APK not found"
+            fi
           fi
           # Replace version placeholder
           if [ -f version.txt ]; then
@@ -285,7 +300,12 @@ jobs:
           sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" site/index.html
           echo "Deploying version: $VERSION"
           echo "APKs in site:"
-          ls -la site/*.apk 2>/dev/null || echo "WARNING: No APKs found in site!"
+          ls -la site/*.apk 2>/dev/null || echo "ERROR: No APKs found in site!"
+          # Fail if no APKs were copied
+          if ! ls site/*.apk 1>/dev/null 2>&1; then
+            echo "::error::No APKs were copied to the site. The download page will have broken links."
+            exit 1
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

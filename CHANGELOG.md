@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.64.10 (2026-11-15)
+
+### GitHub Pages Download Fix
+- Fixed GitHub Pages APK download links returning 404: removed `continue-on-error` from artifact download so the deploy step fails loudly if APKs are missing, and added detailed logging at each step.
+- Added validation that all 4 APK variants are present before deploying; the job will fail with a clear error if any APK is missing.
+
 ## 1.64.9 (2026-11-15)
 
 ### GitHub Pages APK Download Fix
