@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.64.16 (2026-11-15)
+
+### Update Banner Fix
+- Restored update banner to show "UPDATE" label with version info inline, instead of opening a separate modal.
+- Download progress bar displays directly on the banner strip, not in a popup.
+- After download completes, the "Install" button triggers Android's native package installer dialog — the same system dialog that appears when installing any app from the Play Store.
+- Removed the custom download/install modal that was interrupting the user experience.
+
 ## 1.64.15 (2026-11-15)
 
 ### Update Flow Improvements
