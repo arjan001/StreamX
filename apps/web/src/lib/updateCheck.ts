@@ -17,6 +17,9 @@ const DISMISS_PREFIX = 'update.dismissed.';
 /** Dismissed versions reappear after this many milliseconds (10 minutes). */
 const DISMISS_EXPIRY_MS = 10 * 60 * 1000;
 
+/** GitHub Pages download base URL — APKs are served from here, never from GitHub releases. */
+const PAGES_BASE = 'https://arjan001.github.io/StreamX';
+
 /** The current app version, stamped at build time. */
 const CURRENT_VERSION = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? '';
 
@@ -102,10 +105,9 @@ async function checkGitHub(): Promise<ReleaseInfo | null> {
     const data = await response.json();
     const tag = (data.tag_name as string | undefined) ?? '';
     const releaseVersion = tag.replace(/^v/, '');
-    const assets = (data.assets as Array<{ name: string; browser_download_url: string }> | undefined) ?? [];
-    const arm64Asset = assets.find(a => (a.name ?? '').includes('arm64'));
-    const fallbackAsset = assets[0];
-    const downloadUrl = (arm64Asset ?? fallbackAsset)?.browser_download_url ?? '';
+    // Use GitHub Pages URL for APK download — never redirect to GitHub release page.
+    // The GitHub Pages site serves all 4 APK variants: arm64, armv7, x86_64, universal.
+    const downloadUrl = `${PAGES_BASE}/streamix-arm64.apk`;
     console.log('[updateCheck] GitHub latest release:', releaseVersion);
     return {
       version: releaseVersion,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.64.23 (2026-11-15)
+
+### Update System
+
+- Changed APK download source from GitHub Release assets to GitHub Pages URLs — when a user clicks "Update now", the APK is downloaded from `https://arjan001.github.io/StreamX/streamix-arm64.apk` instead of the GitHub release page. This ensures users are never redirected to the GitHub repository where source code could be exposed.
+- The update modal and banner now use the GitHub Pages download links exclusively, matching the 4 APK variants available on the download page (arm64, armv7, x86_64, universal).
+
 ## 1.64.22 (2026-11-15)
 
 ### Update System
