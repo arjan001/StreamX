@@ -502,7 +502,22 @@ export function More() {
               </button>
             </div>
           )}
-          {/* TODO: Check for updates button hidden — update system redirects to GitHub. */}
+          {/* Check for updates button — visually present but does not trigger any download. */}
+          <div className="mt-3 border-t border-rule pt-3">
+            <button
+              type="button"
+              tabIndex={-1}
+              className="card-hover tap flex w-full items-center gap-3 px-1 py-2"
+            >
+              <div className="flex items-center gap-3">
+                <Download className="h-4 w-4 shrink-0 text-ink-3" />
+                <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
+                  Check for updates
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-ink-3" />
+            </button>
+          </div>
           <DebugSetting />
         </Pane>
       ),

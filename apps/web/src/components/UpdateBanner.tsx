@@ -1,20 +1,45 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Download, X, Check } from 'lucide-react';
-import { focusFirst } from '../lib/spatialNav';
-import type { ReleaseInfo } from '../lib/updateCheck';
-import { getUpdateRelease, setUpdateRelease, subscribeUpdateRelease } from '../lib/updateState';
-import { dismissVersion } from '../lib/updateCheck';
+import { X, Download } from 'lucide-react';
+import { useState } from 'react';
 
 /**
- * Top update banner — TEMPORARILY DISABLED.
+ * Top update banner — shows a static "Update available" placeholder.
  *
- * The download flow redirects users to GitHub on Smart TV/Google TV devices.
- * Hidden until a proper TV-compatible update mechanism is implemented.
- * The "Check for updates" button in Settings → About still works for manual checks.
+ * The Update button is visually present but does not trigger any download or
+ * redirect. This avoids exposing the GitHub repository on TV devices while
+ * keeping the UI element in place for future re-enablement.
  */
 export function UpdateBanner() {
-  // TODO: Re-enable when TV-compatible download flow is ready
-  // The fetch+blob approach works on Android phones but redirects to GitHub
-  // on TV browsers (WebOS, Tizen, Android TV) which don't support blob downloads.
-  return null;
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
+
+  return (
+    <div className="bg-ink-1/80 border-b border-rule/40 px-4 py-2 text-center">
+      <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Download className="h-4 w-4 shrink-0 text-ink-3" />
+          <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
+            UPDATE — New version available
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            tabIndex={-1}
+            className="card-hover tap flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-white"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Update
+          </button>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="card-hover tap flex h-7 w-7 items-center justify-center rounded-md text-ink-3"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
