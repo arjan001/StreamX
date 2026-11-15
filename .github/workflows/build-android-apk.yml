@@ -246,91 +246,96 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy-docs:
-    name: Deploy Documentation to GitHub Pages
-    runs-on: ubuntu-latest
-    needs: build-apk
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    continue-on-error: true
-
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download APK - ARM64
-        uses: actions/download-artifact@v4
-        with:
-          name: app-arm64-v8a-debug
-          path: apk-arm64
-
-      - name: Download APK - ARMv7
-        uses: actions/download-artifact@v4
-        with:
-          name: app-armeabi-v7a-debug
-          path: apk-armv7
-
-      - name: Download APK - x86_64
-        uses: actions/download-artifact@v4
-        with:
-          name: app-x86_64-debug
-          path: apk-x86_64
-
-      - name: Download APK - Universal
-        uses: actions/download-artifact@v4
-        with:
-          name: app-universal-debug
-          path: apk-universal
-
-      - name: Download version
-        uses: actions/download-artifact@v4
-        with:
-          name: version
-
-      - name: Build documentation site
-        run: |
-          mkdir -p site
-          cp docs/index.html site/index.html
-          cp -r legal site/ 2>/dev/null || true
-          APK_COUNT=0
-          if [ -f "apk-arm64/app-arm64-v8a-debug.apk" ]; then
-            cp "apk-arm64/app-arm64-v8a-debug.apk" "site/streamix-arm64.apk"
-            APK_COUNT=$((APK_COUNT + 1))
-          fi
-          if [ -f "apk-armv7/app-armeabi-v7a-debug.apk" ]; then
-            cp "apk-armv7/app-armeabi-v7a-debug.apk" "site/streamix-armv7.apk"
-            APK_COUNT=$((APK_COUNT + 1))
-          fi
-          if [ -f "apk-x86_64/app-x86_64-debug.apk" ]; then
-            cp "apk-x86_64/app-x86_64-debug.apk" "site/streamix-x86_64.apk"
-            APK_COUNT=$((APK_COUNT + 1))
-          fi
-          if [ -f "apk-universal/app-universal-debug.apk" ]; then
-            cp "apk-universal/app-universal-debug.apk" "site/streamix-universal.apk"
-            APK_COUNT=$((APK_COUNT + 1))
-          fi
-          VERSION=$(cat version.txt)
-          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" site/index.html
-          echo "Deploying version: $VERSION with $APK_COUNT APKs"
-          ls -la site/*.apk 2>/dev/null || echo "WARNING: No APKs found"
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './site'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+  # deploy-docs job disabled — repository is private, GitHub Pages is not available.
+  # The APK is distributed via GitHub Release assets (APK files only).
+  # Source code ZIP on release pages is a GitHub built-in feature that cannot be
+  # removed via workflow settings; it is hidden from the public when the repo is private.
+  #
+  # deploy-docs:
+  #   name: Deploy Documentation to GitHub Pages
+  #   runs-on: ubuntu-latest
+  #   needs: build-apk
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   continue-on-error: true
+  #
+  #   permissions:
+  #     contents: read
+  #     pages: write
+  #     id-token: write
+  #
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deployment.outputs.page_url }}
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Download APK - ARM64
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: app-arm64-v8a-debug
+  #         path: apk-arm64
+  #
+  #     - name: Download APK - ARMv7
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: app-armeabi-v7a-debug
+  #         path: apk-armv7
+  #
+  #     - name: Download APK - x86_64
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: app-x86_64-debug
+  #         path: apk-x86_64
+  #
+  #     - name: Download APK - Universal
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: app-universal-debug
+  #         path: apk-universal
+  #
+  #     - name: Download version
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: version
+  #
+  #     - name: Build documentation site
+  #       run: |
+  #         mkdir -p site
+  #         cp docs/index.html site/index.html
+  #         cp -r legal site/ 2>/dev/null || true
+  #         APK_COUNT=0
+  #         if [ -f "apk-arm64/app-arm64-v8a-debug.apk" ]; then
+  #           cp "apk-arm64/app-arm64-v8a-debug.apk" "site/streamix-arm64.apk"
+  #           APK_COUNT=$((APK_COUNT + 1))
+  #         fi
+  #         if [ -f "apk-armv7/app-armeabi-v7a-debug.apk" ]; then
+  #           cp "apk-armv7/app-armeabi-v7a-debug.apk" "site/streamix-armv7.apk"
+  #           APK_COUNT=$((APK_COUNT + 1))
+  #         fi
+  #         if [ -f "apk-x86_64/app-x86_64-debug.apk" ]; then
+  #           cp "apk-x86_64/app-x86_64-debug.apk" "site/streamix-x86_64.apk"
+  #           APK_COUNT=$((APK_COUNT + 1))
+  #         fi
+  #         if [ -f "apk-universal/app-universal-debug.apk" ]; then
+  #           cp "apk-universal/app-universal-debug.apk" "site/streamix-universal.apk"
+  #           APK_COUNT=$((APK_COUNT + 1))
+  #         fi
+  #         VERSION=$(cat version.txt)
+  #         sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" site/index.html
+  #         echo "Deploying version: $VERSION with $APK_COUNT APKs"
+  #         ls -la site/*.apk 2>/dev/null || echo "WARNING: No APKs found"
+  #
+  #     - name: Setup Pages
+  #       uses: actions/configure-pages@v4
+  #
+  #     - name: Upload artifact
+  #       uses: actions/upload-pages-artifact@v3
+  #       with:
+  #         path: './site'
+  #
+  #     - name: Deploy to GitHub Pages
+  #       id: deployment
+  #       uses: actions/deploy-pages@v4
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.64.21 (2026-11-15)
+
+### CI/CD
+
+- Disabled GitHub Pages deployment in the CI workflow — the repository is private, so GitHub Pages is not available. The APK is distributed via GitHub Release assets (APK files only).
+- Added documentation comments explaining that the source code ZIP on GitHub release pages is a built-in GitHub feature that cannot be removed via workflow settings; it is hidden from the public when the repository is private.
+
+### Performance Fix
+
+- Removed background pre-fetching of all tab data that was causing permanent black/navy-blue screens on some devices. Tab data now loads on first navigation instead of being fetched in the background after catalogue setup.
+
+### Catalogue Preparation
+
+- Removed the "Browse while it finishes" option from the catalogue preparation screen — users now wait for the catalogue to complete before browsing, preventing black screens on empty tabs like Movies.
+
 ## 1.64.20 (2026-11-15)
 
 ### Performance Fix
