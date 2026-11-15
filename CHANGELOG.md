@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.64.12 (2026-11-15)
+
+### CI Build Fix
+- Restored all 4 APK variants (ARM64, ARMv7, x86_64, Universal) in the CI build pipeline. Each APK is now uploaded as a separate artifact, ensuring the GitHub Pages download page and GitHub Releases include all 4 download links.
+
 ## 1.64.11 (2026-11-15)
 
 ### CI & Build
