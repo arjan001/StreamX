@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.64.27 (2026-11-16)
+
+### CI/CD
+
+- Triggered new build to re-deploy APKs to GitHub Pages after Pages was accidentally unpublished.
+
 ## 1.64.26 (2026-11-16)
 
 ### Update System
