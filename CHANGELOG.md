@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.64.28 (2026-11-16)
+
+### Agent Skills
+
+- Rewrote the main `SKILL.md` with comprehensive project rules, patterns, and constraints — overlay focus behavior, update system rules, APK build requirements, version sync, and adult section patterns.
+- Created 4 specialized agent skills to prevent recurring errors:
+  - **`streamix-ui-patterns`** — Overlay focus behavior (`data-nav-contain`), card layouts, filter bars, navigation bar, search patterns, modal patterns, video player, and error display.
+  - **`streamix-android-packaging`** — APK build process, environment variables, version management (3-file sync), GitHub Pages deployment, Android manifest rules, Fire TV compatibility, and login persistence.
+  - **`streamix-update-system`** — Update flow architecture, download URL building with architecture-matched APKs, update banner and modal patterns, WebView limitations, and TV browser constraints.
+  - **`streamix-adult-section`** — Search-first layout, tag extraction from titles and descriptions (~200+ keywords), cast rail with rounded images, covers/tiles view toggle, and error handling.
+
+### Why Agent Skills Matter
+
+These skills encode the lessons learned from this session. When an AI agent works on the project, it will automatically load these skills and follow the correct patterns, preventing the errors that have been fixed repeatedly:
+
+- **Overlay navigation test failures** — The UI patterns skill mandates `data-nav-contain` on all floating elements.
+- **GitHub redirect bugs** — The update system skill forbids `window.location.href` to GitHub.
+- **Version drift CI failures** — The Android packaging skill requires updating all 3 version files together.
+- **Navy-blue screen crashes** — The adult section skill requires try/catch error handling.
+- **APK build without API origin** — The Android packaging skill requires `STREAMIX_API_ORIGIN` for every build.
+
 ## 1.64.27 (2026-11-16)
 
 ### CI/CD
