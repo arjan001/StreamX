@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.64.34 (2026-11-16)
+
+### Sentry Error Tracking
+
+- **Configured Sentry DSN** — error tracking is now active. The app captures errors automatically and sends them to the Sentry dashboard with full stack traces, device info, and APK version tracking.
+- **Free tier**: 5,000 errors/month with 30-day retention — sufficient for a stable app.
+- **Privacy**: Passwords are automatically redacted from error reports. Common noise (network errors, browser quirks) is filtered out.
+
 ## 1.64.33 (2026-11-16)
 
 ### Sentry Error Tracking
