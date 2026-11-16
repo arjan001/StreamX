@@ -1,4 +1,11 @@
 ext {
+    /*
+     * minSdkVersion 23 (Android 6.0) — required by Capacitor 7.
+     *
+     * Fire TV Stick OS 7 runs Android 7.1 (API 25), so this is compatible.
+     * Older Android TV boxes running Android 5.0 (API 21) are not supported
+     * by Capacitor 7 — they would need a custom native build without Capacitor.
+     */
     minSdkVersion = 23
     compileSdkVersion = 36
     targetSdkVersion = 36

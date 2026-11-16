@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.64.30 (2026-11-16)
+
+### APK Compatibility Fix
+
+- **Fixed APK installation on Android TV and Fire TV Stick** — removed `foregroundServiceType="mediaProjection"` from the manifest and `FOREGROUND_SERVICE_MEDIA_PROJECTION` permission. These required Android 10+ (API 29), but Fire TV Stick OS 7 runs Android 7.1 (API 25). The ListenService already handles the service type at runtime, so the APK now installs on all supported devices.
+- **Improved GitHub Pages download page** — clearer APK descriptions for non-technical users, device compatibility guide (Fire TV, Android TV, Smart TV, Phone), and user-friendly changelog.
+
 ## 1.64.29 (2026-11-16)
 
 ### Verification Release
