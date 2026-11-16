@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.64.24 (2026-11-16)
+
+### Update System
+
+- APK download URL now matches the user's installed architecture — if the user installed the arm64 APK, the update downloads the arm64 APK; if they installed the universal APK, it downloads the universal APK. This prevents confusion where a user on one architecture would receive a different one.
+- The update banner on the top navbar now displays the new version number ("NEW VERSION 1.64.24") instead of a generic message, so users know exactly which version is available.
+
 ## 1.64.23 (2026-11-15)
 
 ### Update System

@@ -20,6 +20,32 @@ const DISMISS_EXPIRY_MS = 10 * 60 * 1000;
 /** GitHub Pages download base URL — APKs are served from here, never from GitHub releases. */
 const PAGES_BASE = 'https://arjan001.github.io/StreamX';
 
+/**
+ * Detect the APK variant from the device's User-Agent string.
+ *
+ * Android WebViews include architecture hints like "arm64-v8a", "armeabi-v7a",
+ * "x86_64" in the UA. When running inside a Capacitor shell (the APK), these
+ * values tell us which APK variant the user installed. Falls back to "universal"
+ * when the architecture cannot be determined.
+ */
+function detectApkVariant(): string {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  if (/arm64|aarch64/i.test(ua)) return 'arm64';
+  if (/armeabi|armv7/i.test(ua)) return 'armv7';
+  if (/x86_64|x86\/64|Win64|amd64/i.test(ua)) return 'x86_64';
+  // Default to universal for unknown architectures (TVs, emulators, etc.)
+  return 'universal';
+}
+
+/**
+ * Build the GitHub Pages download URL matching the user's installed APK variant.
+ * This ensures the update downloads the same architecture, not a random one.
+ */
+function getDownloadUrl(): string {
+  const variant = detectApkVariant();
+  return `${PAGES_BASE}/streamix-${variant}.apk`;
+}
+
 /** The current app version, stamped at build time. */
 const CURRENT_VERSION = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? '';
 
@@ -105,9 +131,9 @@ async function checkGitHub(): Promise<ReleaseInfo | null> {
     const data = await response.json();
     const tag = (data.tag_name as string | undefined) ?? '';
     const releaseVersion = tag.replace(/^v/, '');
-    // Use GitHub Pages URL for APK download — never redirect to GitHub release page.
-    // The GitHub Pages site serves all 4 APK variants: arm64, armv7, x86_64, universal.
-    const downloadUrl = `${PAGES_BASE}/streamix-arm64.apk`;
+    // Use GitHub Pages URL matching the user's APK variant — never redirect to GitHub release page.
+    // Detects arm64, armv7, x86_64, or universal from the device's User-Agent.
+    const downloadUrl = getDownloadUrl();
     console.log('[updateCheck] GitHub latest release:', releaseVersion);
     return {
       version: releaseVersion,

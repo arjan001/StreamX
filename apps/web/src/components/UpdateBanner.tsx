@@ -1,8 +1,9 @@
 import { X, Download } from 'lucide-react';
 import { useState } from 'react';
+import { getUpdateRelease } from '../lib/updateState';
 
 /**
- * Top update banner — shows a static "Update available" placeholder.
+ * Top update banner — shows "NEW VERSION {version}" with an Update button.
  *
  * The Update button is visually present but does not trigger any download or
  * redirect. This avoids exposing the GitHub repository on TV devices while
@@ -10,8 +11,11 @@ import { useState } from 'react';
  */
 export function UpdateBanner() {
   const [dismissed, setDismissed] = useState(false);
+  const release = getUpdateRelease();
 
   if (dismissed) return null;
+
+  const version = release?.version ?? '';
 
   return (
     <div className="bg-ink-1/80 border-b border-rule/40 px-4 py-2 text-center">
@@ -19,7 +23,7 @@ export function UpdateBanner() {
         <div className="flex items-center gap-2">
           <Download className="h-4 w-4 shrink-0 text-ink-3" />
           <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
-            UPDATE — New version available
+            NEW VERSION {version}
           </span>
         </div>
         <div className="flex items-center gap-2">
