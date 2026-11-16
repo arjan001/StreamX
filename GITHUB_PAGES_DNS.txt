@@ -1,0 +1,61 @@
+GitHub Pages Custom Domain DNS Configuration
+=============================================
+
+To use a custom domain (e.g., apk.streamix.com) with GitHub Pages, add the
+following DNS records to your domain host.
+
+IMPORTANT: Replace "arjan001.github.io" with your GitHub Pages CNAME value.
+
+---
+
+OPTION 1: Root domain (e.g., streamix.com)
+-------------------------------------------
+
+Record type:    A
+Name:           @
+Value:          185.199.108.153
+TTL:            3600
+
+Record type:    A
+Name:           @
+Value:          185.199.109.153
+TTL:            3600
+
+Record type:    A
+Name:           @
+Value:          185.199.110.153
+TTL:            3600
+
+Record type:    A
+Name:           @
+Value:          185.199.111.153
+TTL:            3600
+
+---
+
+OPTION 2: Subdomain (e.g., apk.streamix.com)  ← RECOMMENDED
+-------------------------------------------------------------
+
+Record type:    CNAME
+Name:           apk
+Value:          arjan001.github.io
+TTL:            3600
+
+---
+
+After adding the DNS record:
+
+1. Wait for DNS propagation (usually 10-30 minutes, up to 24 hours).
+2. In your GitHub repository, go to Settings → Pages → Custom domain.
+3. Enter your custom domain (e.g., apk.streamix.com).
+4. Check "Enforce HTTPS" after SSL is provisioned (takes ~48 hours).
+
+The GitHub Pages URL will then be:
+  https://apk.streamix.com/streamix-arm64.apk
+  https://apk.streamix.com/streamix-armv7.apk
+  https://apk.streamix.com/streamix-x86_64.apk
+  https://apk.streamix.com/streamix-universal.apk
+
+Note: After setting the custom domain, update the PAGES_BASE constant in
+apps/web/src/lib/updateCheck.ts to use your custom domain instead of
+arjan001.github.io/StreamX.

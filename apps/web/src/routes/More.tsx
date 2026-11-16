@@ -502,15 +502,27 @@ export function More() {
               </button>
             </div>
           )}
-          {/* Check for updates button — visually present but does not trigger any download. */}
           <div className="mt-3 border-t border-rule pt-3">
             <button
               type="button"
-              tabIndex={-1}
+              onClick={async () => {
+                setAboutChecking(true);
+                const r = await forceCheckForUpdate();
+                setAboutChecking(false);
+                if (r !== null) {
+                  setAboutRelease(r);
+                  setUpdateRelease(r);
+                }
+              }}
+              disabled={aboutChecking}
               className="card-hover tap flex w-full items-center gap-3 px-1 py-2"
             >
               <div className="flex items-center gap-3">
-                <Download className="h-4 w-4 shrink-0 text-ink-3" />
+                {aboutChecking ? (
+                  <RefreshCw className="h-4 w-4 animate-spin shrink-0 text-ink-3" />
+                ) : (
+                  <Download className="h-4 w-4 shrink-0 text-ink-3" />
+                )}
                 <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
                   Check for updates
                 </span>

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.64.25 (2026-11-16)
+
+### Update System
+
+- Restored GitHub Pages deployment — the CI workflow now deploys all 4 APK variants (arm64, armv7, x86_64, universal) to GitHub Pages on each release. The download page at `https://arjan001.github.io/StreamX/` serves the APKs directly.
+- Re-enabled the "Update" button on the top navbar banner — clicking it downloads the APK from GitHub Pages as a blob with a progress bar, then triggers the browser's download manager. Users are never redirected to the GitHub repository.
+- Re-enabled the "Check for updates" button in Settings → About — clicking it checks for new releases and shows the changelog modal if an update is available.
+- Added DNS configuration file (`GITHUB_PAGES_DNS.txt`) for setting up a custom domain on GitHub Pages.
+
+### Bug Fixes
+
+- Fixed CI build failure caused by the repository being private — GitHub Pages is now accessible again with the repository set to public.
+
 ## 1.64.24 (2026-11-16)
 
 ### Update System
