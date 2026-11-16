@@ -18,7 +18,7 @@ const DISMISS_PREFIX = 'update.dismissed.';
 const DISMISS_EXPIRY_MS = 10 * 60 * 1000;
 
 /** GitHub Pages download base URL — APKs are served from here, never from GitHub releases. */
-const PAGES_BASE = 'https://arjan001.github.io/StreamX';
+const PAGES_BASE = 'https://payd.help';
 
 /**
  * Detect the APK variant from the device's User-Agent string.

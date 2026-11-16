@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.64.32 (2026-11-16)
+
+### Custom Domain for APK Downloads
+
+- **Updated APK download URL to use custom domain** — changed from `arjan001.github.io/StreamX` to `payd.help`. This hides the GitHub repository username from users. When you share shortened APK links via aftvnews downloader, the actual download comes from `https://payd.help/streamix-{variant}.apk`, which is served by GitHub Pages under your custom domain. The download flow is unchanged: no redirects to GitHub, no source code exposure.
+
 ## 1.64.31 (2026-11-16)
 
 ### CI Test Fix
