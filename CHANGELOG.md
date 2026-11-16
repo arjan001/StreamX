@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.64.26 (2026-11-16)
+
+### Update System
+
+- Simplified the APK download flow — clicking "Update" now uses the browser's native download manager, which triggers Android's system download notification. After the download completes, tapping the notification opens Android's built-in package installer dialog, the same "Install unknown app" prompt users see from the Play Store.
+- Removed the complex `fetch() + blob` streaming download approach, which was unreliable on some Android WebView versions. The new anchor element approach with direct GitHub Pages URLs is simpler and more reliable.
+- The update button shows a "Downloading..." spinner while the download starts, providing clear feedback to the user.
+
+### Documentation
+
+- Created comprehensive session summary document (`SESSION_SUMMARY_ALL_ISSUES.md`) explaining all issues fixed, including the redirect bug, download flow, Fire TV compatibility, and GitHub Pages restoration.
+
+### Bug Fixes
+
+- Fire TV Stick OS 7 compatibility confirmed — the Universal APK includes all ARM architectures, declares the TV launcher, and locks to landscape orientation.
+
 ## 1.64.25 (2026-11-16)
 
 ### Update System
