@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.64.31 (2026-11-16)
+
+### CI Test Fix
+
+- **Fixed CI test failure** — updated the manifest permission test to expect `foregroundServiceType` to be absent. This attribute was removed in 1.64.30 to allow APK installation on Android 7.1+ (Fire TV Stick OS 7), so the test now correctly verifies that the attribute is not present.
+
 ## 1.64.30 (2026-11-16)
 
 ### APK Compatibility Fix

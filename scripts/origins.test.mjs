@@ -93,5 +93,8 @@ test('the manifest asks for nothing Play forbids or the app no longer uses', () 
     assert.equal(m.includes(gone), false, `manifest still mentions ${gone}`);
   }
   assert.match(m, /android:allowBackup="false"/);
-  assert.match(m, /foregroundServiceType="mediaProjection"/);
+  // foregroundServiceType="mediaProjection" was removed to allow installation on Android 7.1+ (API 25).
+  // Fire TV Stick OS 7 runs Android 7.1, which predates foreground service types (API 29).
+  // The ListenService handles the service type at runtime only on API 29+.
+  assert.equal(m.includes('foregroundServiceType'), false, 'manifest should not declare foregroundServiceType for older device compatibility');
 });
