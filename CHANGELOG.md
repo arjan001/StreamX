@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.64.35 (2026-11-16)
+
+### CI Fix
+
+- **Regenerated stale license files** — adding Sentry dependencies updated the package.json, which made the generated `THIRD_PARTY_NOTICES.md` and `legal/licenses.md` out of date. The CI license check now passes with the updated files.
+
 ## 1.64.34 (2026-11-16)
 
 ### Sentry Error Tracking
