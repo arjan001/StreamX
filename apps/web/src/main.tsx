@@ -52,6 +52,12 @@ import { isNativeShell } from './lib/direct';
 import { startAccountChecks } from './lib/accountCheck';
 import { checkForUpdate } from './lib/updateCheck';
 import { setUpdateRelease, subscribeUpdateRelease } from './lib/updateState';
+import { initSentry } from './lib/sentry';
+
+/** Initialize Sentry error tracking — must run before any other code. */
+const SENTRY_DSN = (import.meta.env?.VITE_SENTRY_DSN as string | undefined) ?? '';
+const APP_VERSION = (import.meta.env?.VITE_APP_VERSION as string | undefined) ?? '';
+initSentry(SENTRY_DSN, APP_VERSION);
 
 /*
  * Routes load after first paint.

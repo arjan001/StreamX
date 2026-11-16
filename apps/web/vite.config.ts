@@ -83,6 +83,7 @@ export default defineConfig({
     'import.meta.env.VITE_BRAND': JSON.stringify(process.env.VITE_BRAND ?? ''),
     /* Exact keys — optional-chaining on import.meta.env left these empty in the bundle. */
     'import.meta.env.VITE_API_ORIGIN': JSON.stringify(apiOrigin()),
+    'import.meta.env.VITE_SENTRY_DSN': JSON.stringify(process.env.VITE_SENTRY_DSN ?? dotenvValue('VITE_SENTRY_DSN') ?? ''),
   },
   /**
    * Absolute asset paths on the web, relative ones in a packaged shell.

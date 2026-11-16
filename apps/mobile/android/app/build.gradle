@@ -47,8 +47,8 @@ android {
         /* 7 / 1.3.0 — Streamix: the whole identity now comes from brand.config.json
            and brand/logo.png, plus an animated splash and a landscape lock. A minor
            bump rather than a patch, because the app is a different product name. */
-        versionCode 240
-        versionName "1.64.32"
+        versionCode 241
+        versionName "1.64.33"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         /**
          * The architectures this app supports, stated once.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.64.33 (2026-11-16)
+
+### Sentry Error Tracking
+
+- **Added Sentry error tracking** — the app now captures errors automatically and sends them to your Sentry dashboard. This helps you see what's going wrong on user devices in real time with full stack traces, device info, and release tracking.
+- **Setup**: Create a free account at https://sentry.io, create a project, and add the DSN as `VITE_SENTRY_DSN` in your `.env` file or as a GitHub repository secret. Without a DSN, error tracking is silently disabled — no errors are thrown.
+- **Free tier**: 5,000 errors/month with 30-day retention — enough for a stable app like Streamix.
+- **Privacy**: Sensitive data (passwords) is automatically redacted from error reports. Common noise (network errors, browser quirks) is filtered out.
+
 ## 1.64.32 (2026-11-16)
 
 ### Custom Domain for APK Downloads
