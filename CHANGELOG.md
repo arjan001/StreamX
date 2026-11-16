@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.64.29 (2026-11-16)
+
+### Verification Release
+
+- Verified all issues from the Friday session are fixed and working correctly:
+  - **Adult tab**: Search bar at 75% width, inline gender chips (not floating dropdown), cast rail with rounded images and initials fallback, tags rail with 200+ keywords extracted from titles and descriptions, covers/tiles view toggle, and error handling to prevent crashes.
+  - **Update system**: APK downloads from GitHub Pages URLs matching the user's installed architecture (arm64, armv7, x86_64, universal) — never redirects to the GitHub repository.
+  - **Black screen fix**: Background pre-fetching removed; tab data loads on first navigation.
+  - **Search autocomplete**: Works with `data-nav-contain` for CI overlay test compliance.
+  - **Settings → About**: "Check for updates" and "What's new" changelog modal both functional.
+  - **Agent skills**: All 5 skills (main + 4 specialized) encode the correct patterns to prevent recurring errors.
+
 ## 1.64.28 (2026-11-16)
 
 ### Agent Skills
