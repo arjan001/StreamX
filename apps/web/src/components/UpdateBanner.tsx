@@ -1,106 +1,75 @@
 import { X, Download, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
-  getDownloadProgress,
   getUpdateRelease,
-  resetDownloadProgress,
-  setDownloadProgress,
   setUpdateRelease,
   subscribeUpdateRelease,
 } from '../lib/updateState';
-import { dismissVersion } from '../lib/updateCheck';
+import { dismissVersion, recordInstalledVersion } from '../lib/updateCheck';
 import { logInfo } from '../lib/sentry';
 
 /**
  * Top update banner — shows "NEW VERSION {version}" with an Update button.
  *
- * Download flow: When the user clicks "Update", the APK is fetched as a blob
- * with XHR progress events. The banner shows a live progress bar during the
- * download. When complete, the button changes to "Install" which triggers the
- * Android package installer via a blob URL.
+ * Download flow: When the user clicks "Update", the APK download is triggered
+ * via `window.location.href`, which on Android WebView opens the system download
+ * manager. The user sees a notification in the status bar showing download
+ * progress. When complete, they tap the notification to open Android's built-in
+ * package installer — the same "Install unknown app" / "Update app" system
+ * prompt used by the Play Store, Telegram, VLC, MX Player, and other apps.
  *
- * Download state is shared via updateState.ts so dismissing the UpdateModal
- * does not hide the progress — the banner continues to show the download status.
+ * This is the standard approach for APK auto-update in WebView-based apps.
+ * The app does not need REQUEST_INSTALL_PACKAGES permission because the system
+ * download manager handles the install flow natively.
+ *
+ * After the user triggers the install, the version is recorded so the banner
+ * does not reappear after the app restarts with the new version.
  *
  * Users are never redirected to the GitHub repository page.
  */
 export function UpdateBanner() {
   const [dismissed, setDismissed] = useState(false);
-  const [progress, setProgressState] = useState(getDownloadProgress);
+  const [installing, setInstalling] = useState(false);
   const release = getUpdateRelease();
 
   const version = release?.version ?? '';
-  const { downloading, percent, completed, blobUrl, error } = progress;
 
-  // Subscribe to shared download progress updates
   useEffect(() => {
-    return subscribeUpdateRelease(() => setProgressState(getDownloadProgress()));
+    return subscribeUpdateRelease(() => {});
   }, []);
 
   /**
-   * Start the APK download using XMLHttpRequest for progress tracking.
-   * The blob is stored in the shared state so both banner and modal can access it.
+   * Start the APK download using the system download manager.
+   *
+   * On Android WebView (Capacitor), `window.location.href` with a direct APK URL
+   * triggers the system download manager, which shows a notification in the
+   * status bar with live progress. When the user taps the notification, Android
+   * opens the built-in package installer dialog — the same flow users see when
+   * installing any APK from a browser or from apps like Telegram/VLC.
+   *
+   * This is preferred over blob downloads because:
+   * - The system handles retries, pauses, and network changes
+   * - Download continues even if the app is backgrounded
+   * - No memory pressure from holding the entire APK in WebView RAM
+   * - Works reliably across all Android WebView versions
+   * - The user sees progress in the system notification shade
    */
   const startDownload = () => {
-    if (!release?.download_url || downloading) return;
+    if (!release?.download_url || installing) return;
+    setInstalling(true);
+    logInfo('Update download started (banner)', { version });
 
-    setDownloadProgress({ downloading: true, percent: 0, completed: false, error: false });
-    logInfo('Update download started', { version });
+    // Record that the user initiated the install so we don't prompt again
+    recordInstalledVersion(version);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', release.download_url, true);
-    xhr.responseType = 'blob';
-
-    xhr.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const pct = Math.round((event.loaded / event.total) * 100);
-        setDownloadProgress({ percent: pct });
-      } else {
-        // Fallback: simulate progress when total is unknown
-        setDownloadProgress({ percent: Math.min(percent + 2, 90) });
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        const blob = xhr.response as Blob;
-        const blobUrl = URL.createObjectURL(blob);
-        setDownloadProgress({ downloading: false, percent: 100, completed: true, blobUrl });
-        logInfo('Update download completed', { version, size: blob.size });
-      } else {
-        setDownloadProgress({ downloading: false, error: true });
-        logInfo('Update download failed', { version, status: xhr.status });
-      }
-    };
-
-    xhr.onerror = () => {
-      setDownloadProgress({ downloading: false, error: true });
-      logInfo('Update download network error', { version });
-    };
-
-    xhr.send();
-  };
-
-  /** Trigger the install by opening the blob URL. */
-  const triggerInstall = () => {
-    if (!blobUrl) return;
-    logInfo('Update install triggered', { version });
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = `streamix-v${release?.version}.apk`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Trigger the system download manager
+    window.location.href = release.download_url;
   };
 
   const handleDismiss = () => {
     if (release) dismissVersion(release.version);
     setDismissed(true);
     setUpdateRelease(null);
-    // Clean up blob URL if download was completed
-    if (completed) {
-      resetDownloadProgress();
-    }
   };
 
   if (dismissed) return null;
@@ -114,57 +83,24 @@ export function UpdateBanner() {
             NEW VERSION <strong className="font-bold">{version}</strong>
           </span>
         </div>
-        <div className="flex flex-1 items-center gap-2">
-          {/* Progress bar — shown when downloading */}
-          {downloading && (
-            <div className="flex h-1.5 w-24 overflow-hidden rounded-full bg-ink-1/50">
-              <div
-                className="h-full bg-brand transition-all duration-300"
-                style={{ width: `${percent}%` }}
-              />
+        <div className="flex items-center gap-2">
+          {installing ? (
+            <div className="flex items-center gap-2">
+              <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+              <span className="font-mono text-[length:var(--t-xs)] text-ink-3">
+                Downloading...
+              </span>
             </div>
-          )}
-          {/* Action button */}
-          {error ? (
-            <button
-              type="button"
-              onClick={() => {
-                setDownloadProgress({ error: false });
-                startDownload();
-              }}
-              className="card-hover tap flex items-center gap-1.5 rounded-md bg-red-500/20 px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-red-300"
-            >
-              Retry
-            </button>
-          ) : completed && blobUrl ? (
-            <button
-              type="button"
-              onClick={triggerInstall}
-              className="card-hover tap flex items-center gap-1.5 rounded-md bg-tally/8 px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-ground"
-            >
-              <Check className="h-3.5 w-3.5" />
-              Install
-            </button>
           ) : (
             <button
               type="button"
               onClick={startDownload}
-              disabled={downloading}
-              className="card-hover tap flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-white disabled:opacity-50"
+              className="card-hover tap flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-white"
             >
-              {downloading ? (
-                <>
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                  </svg>
-                  {percent}%
-                </>
-              ) : (
-                <>
-                  <Download className="h-3.5 w-3.5" />
-                  Update
-                </>
-              )}
+              <Download className="h-3.5 w-3.5" />
+              Update
             </button>
           )}
           <button

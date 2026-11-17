@@ -14,8 +14,18 @@
 const GITHUB_REPO = 'arjan001/StreamX';
 const DISMISS_PREFIX = 'update.dismissed.';
 
-/** Dismissed versions reappear after this many milliseconds (10 minutes). */
-const DISMISS_EXPIRY_MS = 10 * 60 * 1000;
+/**
+ * Dismissed versions reappear after this many milliseconds (24 hours).
+ *
+ * 10 minutes was too short — users who dismissed the prompt would see it again
+ * within the same viewing session. 24 hours gives a reasonable reminder interval
+ * without being annoying. Once the user installs the update, the app restarts
+ * with the new version, so the prompt naturally goes away.
+ */
+const DISMISS_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+/** Key in localStorage that stores the last installed version (set after successful install). */
+const INSTALLED_VERSION_KEY = 'update.installed.version';
 
 /** GitHub Pages download base URL — APKs are served from here, never from GitHub releases. */
 const PAGES_BASE = 'https://payd.help';
@@ -101,13 +111,39 @@ export function isDismissed(version: string): boolean {
 }
 
 /**
- * Mark a version as dismissed with a timestamp so it reappears after 10 minutes.
+ * Mark a version as dismissed with a timestamp so it reappears after 24 hours.
  */
 export function dismissVersion(version: string): void {
   try {
     localStorage.setItem(`${DISMISS_PREFIX}v${version}`, String(Date.now()));
   } catch {
     // Storage full or unavailable — silently fail
+  }
+}
+
+/**
+ * Record that the user has installed a specific version.
+ *
+ * Called after the system package installer is triggered. The next time the app
+ * starts, it will compare the current version with the installed version and not
+ * show the update prompt if they match.
+ */
+export function recordInstalledVersion(version: string): void {
+  try {
+    localStorage.setItem(INSTALLED_VERSION_KEY, version);
+  } catch {
+    // Storage full or unavailable — silently fail
+  }
+}
+
+/**
+ * Get the last installed version, or null if never installed via update.
+ */
+export function getInstalledVersion(): string | null {
+  try {
+    return localStorage.getItem(INSTALLED_VERSION_KEY);
+  } catch {
+    return null;
   }
 }
 
@@ -177,6 +213,13 @@ export async function checkForUpdate(): Promise<ReleaseInfo | null> {
   const dismissed = isDismissed(release.version);
   console.log('[updateCheck] isDismissed(', release.version, ') =', dismissed);
   if (dismissed) return null;
+
+  // Skip if the user has already installed this version
+  const installed = getInstalledVersion();
+  if (installed === release.version) {
+    console.log('[updateCheck] Version already installed:', release.version);
+    return null;
+  }
 
   console.log('[updateCheck] Update available:', release.version, 'with download_url:', !!release.download_url);
   return release;
