@@ -285,7 +285,7 @@ export function Adult() {
               <ChevronDown className={`h-3 w-3 transition-transform ${genderOpen ? 'rotate-180' : ''}`} />
             </button>
             {genderOpen && (
-              <div className="absolute left-0 top-full z-50 mt-1 flex items-center gap-1.5 rounded-lg border border-rule bg-panel/95 p-2 shadow-lg backdrop-blur">
+              <div data-nav-contain className="absolute left-0 top-full z-50 mt-1 flex items-center gap-1.5 rounded-lg border border-rule bg-panel/95 p-2 shadow-lg backdrop-blur">
                 <button
                   type="button"
                   onClick={() => { handleSexSelect(null); setGenderOpen(false); }}
@@ -332,7 +332,7 @@ export function Adult() {
               <ChevronDown className={`h-3 w-3 transition-transform ${viewOpen ? 'rotate-180' : ''}`} />
             </button>
             {viewOpen && (
-              <div className="absolute left-0 top-full z-50 mt-1 flex flex-col rounded-lg border border-rule bg-panel/95 p-1 shadow-lg backdrop-blur">
+              <div data-nav-contain className="absolute left-0 top-full z-50 mt-1 flex flex-col rounded-lg border border-rule bg-panel/95 p-1 shadow-lg backdrop-blur">
                 <button
                   type="button"
                   onClick={() => { setViewMode('tiles'); setViewOpen(false); }}
