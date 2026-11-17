@@ -649,7 +649,7 @@ export function SeriesDesk({ routeId }: { routeId: string }) {
             ].filter((f): f is string => f !== null && f !== '')}
             /* Four, because four is what one line holds at 960. The full cast
                is reference material for a desk; this is who is in it. */
-            cast={(data?.meta?.cast ?? []).slice(0, 4)}
+            cast={(data?.meta?.cast ?? []).map((c) => (typeof c === 'string' ? c : c.name)).filter(Boolean).slice(0, 4)}
             starred={starred}
             onToggleFav={seriesId === null ? null : () => toggleFav('series', seriesId)}
             resume={resumeTarget === null ? null : {

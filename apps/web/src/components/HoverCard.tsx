@@ -49,6 +49,11 @@ function splitGenres(raw: string | null | undefined): string[] {
     .slice(0, 4);
 }
 
+function castToStrings(cast: (string | { name: string })[] | undefined): string[] {
+  if (!cast) return [];
+  return cast.map((c) => (typeof c === 'string' ? c : c.name)).filter(Boolean);
+}
+
 async function fetchDetail(id: number, kind: HoverKind): Promise<HoverDetail> {
   if (kind === 'series') {
     const r = await api.seriesDetail(id);
@@ -58,7 +63,7 @@ async function fetchDetail(id: number, kind: HoverKind): Promise<HoverDetail> {
     return {
       plot: r.series.plot ?? meta.plot ?? null,
       genres: meta.genres?.length ? meta.genres : splitGenres(r.series.genre),
-      cast: meta.cast ?? [],
+      cast: castToStrings(meta.cast),
       duration: meta.duration ?? null,
       height: meta.video?.height ?? null,
       extent: seasons
@@ -71,7 +76,7 @@ async function fetchDetail(id: number, kind: HoverKind): Promise<HoverDetail> {
   return {
     plot: d?.plot ?? null,
     genres: d?.genres ?? [],
-    cast: d?.cast ?? [],
+    cast: castToStrings(d?.cast),
     duration: d?.duration ?? null,
     height: d?.video?.height ?? null,
     extent: null,

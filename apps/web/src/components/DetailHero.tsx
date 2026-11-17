@@ -431,8 +431,8 @@ export function DetailHero({
                                   onError={(e) => {
                                     // Fallback to initials if image fails
                                     (e.target as HTMLImageElement).style.display = 'none';
-                                    const span = e.target?.nextElementSibling;
-                                    if (span) span.style.display = 'flex';
+                                    const span = (e.target as Element)?.nextElementSibling;
+                                    if (span) (span as HTMLElement).style.display = 'flex';
                                   }}
                                 />
                               ) : null}

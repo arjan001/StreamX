@@ -74,7 +74,7 @@ export function UpdateBanner() {
         <div className="flex items-center gap-2">
           <Download className="h-4 w-4 shrink-0 text-ink-3" />
           <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
-            NEW VERSION {version}
+            NEW VERSION <strong className="font-bold">{version}</strong>
           </span>
         </div>
         <div className="flex items-center gap-2">
