@@ -19,7 +19,7 @@
  * except this file, and the web path serves both.
  */
 
-export type Platform = 'ios' | 'android' | 'tizen' | 'webos' | 'web';
+export type Platform = 'ios' | 'android' | 'fireos' | 'tizen' | 'webos' | 'web';
 
 export interface PlatformEnv {
   /** `Capacitor.getPlatform()`, when Capacitor is present in the page. */
@@ -30,9 +30,18 @@ export interface PlatformEnv {
 }
 
 export function platformOf(env: PlatformEnv): Platform {
+  const ua = env.userAgent ?? '';
+  /*
+   * Fire OS detection before Capacitor platform check.
+   *
+   * Fire OS 7 (Android 9) reports `android` from Capacitor, but its Amazon WebView
+   * is a frozen Chromium build that cannot be updated independently. Detecting it
+   * as 'fireos' allows targeted fixes for its known WebView limitations while
+   * keeping the same native plugin path (libVLC works on Fire OS).
+   */
+  if (/FireTV|Fire TV|AFT|FDR|FN|AFTT/i.test(ua)) return 'fireos';
   const cap = (env.capacitor ?? '').toLowerCase();
   if (cap === 'ios' || cap === 'android') return cap;
-  const ua = env.userAgent ?? '';
   if (/Tizen/i.test(ua)) return 'tizen';
   if (/Web0S|webOS|NetCast/i.test(ua)) return 'webos';
   /* A bare Safari on iOS is the same engine and the same constraints as the
@@ -88,7 +97,7 @@ export function isIos(): boolean {
  * mistaken for a platform without plugins.
  */
 export function streamixPluginsPossible(platform: Platform): boolean {
-  return platform !== 'ios';
+  return platform !== 'ios' && platform !== 'web' && platform !== 'tizen' && platform !== 'webos';
 }
 
 /**
@@ -102,7 +111,7 @@ export function streamixPluginsPossible(platform: Platform): boolean {
  * do not offer the source either.
  */
 export function stalkerSupportedOn(platform: Platform): boolean {
-  return platform === 'android' || platform === 'ios';
+  return platform === 'android' || platform === 'fireos' || platform === 'ios';
 }
 
 export function stalkerSupported(): boolean {
@@ -176,7 +185,7 @@ export function liveFormatFor(
  * Android uses `StreamixListen`, the only other route, which iOS does not have.
  */
 export function liveCaptionsPossible(platform: Platform): boolean {
-  return platform !== 'ios';
+  return platform !== 'ios' && platform !== 'tizen' && platform !== 'webos';
 }
 
 /** The words for a stream iOS cannot open, shown instead of a decoder error. */

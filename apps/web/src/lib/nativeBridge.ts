@@ -17,6 +17,8 @@ import { dlog } from './debugLog.ts';
 import { nativeCachingMs, resolveBufferProfile } from './liveBuffer.ts';
 import { deviceRelayAllowed } from './operatorFlags.ts';
 import { getCapabilities } from './capabilityStore.ts';
+import { logInfo } from './sentry.ts';
+import { currentPlatform } from './platform.ts';
 import type { NativeEvent } from './nativePlayer.ts';
 
 export interface NativeHandle {
@@ -128,6 +130,17 @@ export async function tryNative(
     dlog.info('native', `chosen up front: ${pref === 'native' ? 'engine preference' : needsNative(key) ? 'learned for this stream' : 'container or codec rule'}`);
   } else {
     dlog.info('native', 'forced: the WebView already refused this stream');
+  }
+
+  /* Log engine choice on Fire OS for Sentry diagnostics. */
+  const platform = currentPlatform();
+  if (platform === 'fireos') {
+    logInfo('Native engine chosen for playback on Fire OS', {
+      label: opts.label,
+      live: opts.live,
+      container: target.container,
+      force: opts.force ?? false,
+    });
   }
 
   try {

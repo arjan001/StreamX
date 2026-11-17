@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.PixelCopy;
 import android.view.SurfaceView;
 import android.view.View;
@@ -403,8 +404,15 @@ public class StreamixPlayerPlugin extends Plugin {
 
     private synchronized void ensurePlayer(String userAgent) {
         if (player != null) return;
+        /*
+         * Log initialization for diagnostics, especially on Fire OS where
+         * libVLC native library loading is the most common failure point.
+         */
+        Log.i("StreamixPlayer", "Initializing libVLC on " + Build.MANUFACTURER + " "
+                + Build.MODEL + " (API " + Build.VERSION.SDK_INT + ")");
         libVlc = new LibVLC(getContext(), vlcOptions(userAgent));
         player = new MediaPlayer(libVlc);
+        Log.i("StreamixPlayer", "libVLC initialized successfully");
         player.setEventListener(event -> {
             JSObject data = new JSObject();
             switch (event.type) {
@@ -640,6 +648,9 @@ public class StreamixPlayerPlugin extends Plugin {
             // ARM-only build) it used to escape the plugin call and take the whole
             // app down. Refuse the call instead — the page falls back to the
             // WebView engine and says why in its debug log.
+            Log.e("StreamixPlayer", "libVLC initialization failed on " + Build.MANUFACTURER
+                    + " " + Build.MODEL + " (API " + Build.VERSION.SDK_INT + "): "
+                    + t.getClass().getSimpleName() + ": " + t.getMessage(), t);
             call.reject("libVLC could not be loaded on this device: " + t);
             return;
         }

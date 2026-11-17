@@ -19,7 +19,7 @@
  */
 import { matchCodec, type CapabilityReport } from './codecs.ts';
 import { kv } from './kv.ts';
-import { nativePluginsPossible } from './platform.ts';
+import { currentPlatform, nativePluginsPossible } from './platform.ts';
 
 export interface NativeCodec {
   mime: string;
@@ -599,9 +599,17 @@ export function webHasNoPathFor(url: string): boolean {
   return ext !== null && NO_WEB_PATH.has(ext);
 }
 
-/** A film or an episode, by the panel's own path for them. */
+/**
+ * A film or an episode, by the panel's own path for them.
+ *
+ * Expanded to match more VOD URL patterns because some panels use different
+ * paths (vod, clip) or serve direct file URLs. Fire OS 7 especially benefits
+ * from catching all VOD patterns so libVLC can play them instead of the
+ * frozen WebView, which may not decode the codec.
+ */
 export function isFilmUrl(url: string): boolean {
-  return /\/(movie|series)\//i.test(url);
+  return /\/(movie|series|vod|clip)\//i.test(url)
+    || /\.(mp4|mkv|avi|m4v|wmv|flv|mov)(?:[?#]|$)/i.test(url);
 }
 
 /** The file extension of a stream URL, lowercased, or null. */
@@ -642,6 +650,19 @@ export function chooseEngine(opts: {
 
   // Learned the hard way, on this device, from this stream failing to decode.
   if (needsNative(key)) return 'native';
+  /*
+   * Fire OS forces libVLC for all VOD, bypassing the frozen WebView.
+   *
+   * Fire OS 7 ships an Amazon WebView (AWV) that is a frozen Chromium build
+   * that cannot be updated independently. Even if a URL doesn't match the
+   * known film patterns, the WebView is unreliable for VOD on this platform.
+   * libVLC handles all codecs in hardware with software fallback.
+   */
+  const platform = currentPlatform();
+  if (platform === 'fireos' && !opts.url.includes('.m3u8') && !opts.url.includes('.ts')) {
+    return 'native';
+  }
+
   /*
    * Films and episodes go to libVLC, whatever the container says.
    *
