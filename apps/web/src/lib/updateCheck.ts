@@ -67,9 +67,7 @@ export interface ReleaseInfo {
   version: string;
   /** The release body/changelog from GitHub. */
   body: string;
-  /** The GitHub release page URL (not used for download). */
-  html_url: string;
-  /** Direct APK download URL from release assets. */
+  /** Direct APK download URL from GitHub Pages. */
   download_url: string;
 }
 
@@ -174,7 +172,6 @@ async function checkGitHub(): Promise<ReleaseInfo | null> {
     return {
       version: releaseVersion,
       body: (data.body as string | undefined) ?? '',
-      html_url: (data.html_url as string | undefined) ?? `https://github.com/${GITHUB_REPO}/releases/latest`,
       download_url: downloadUrl,
     };
   } catch (e) {

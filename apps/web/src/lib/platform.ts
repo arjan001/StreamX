@@ -97,7 +97,7 @@ export function isIos(): boolean {
  * mistaken for a platform without plugins.
  */
 export function streamixPluginsPossible(platform: Platform): boolean {
-  return platform !== 'ios' && platform !== 'web' && platform !== 'tizen' && platform !== 'webos';
+  return platform !== 'ios';
 }
 
 /**
@@ -185,7 +185,7 @@ export function liveFormatFor(
  * Android uses `StreamixListen`, the only other route, which iOS does not have.
  */
 export function liveCaptionsPossible(platform: Platform): boolean {
-  return platform !== 'ios' && platform !== 'tizen' && platform !== 'webos';
+  return platform !== 'ios';
 }
 
 /** The words for a stream iOS cannot open, shown instead of a decoder error. */

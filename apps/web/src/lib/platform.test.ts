@@ -31,7 +31,7 @@ test('HLS: iOS plays it natively, every other platform keeps hls.js first', () =
   assert.equal(pickWebEngine(base({ platform: 'ios', nativeHls: true, hlsJs: true })), 'native-hls');
   assert.equal(pickWebEngine(base({ platform: 'ios', nativeHls: false, hlsJs: true })), 'hlsjs');
   assert.equal(pickWebEngine(base({ platform: 'ios' })), 'unsupported');
-  for (const platform of ['android', 'tizen', 'webos', 'web'] as Platform[]) {
+  for (const platform of ['android', 'fireos', 'tizen', 'webos', 'web'] as Platform[]) {
     assert.equal(pickWebEngine(base({ platform, nativeHls: true, hlsJs: true })), 'hlsjs', platform);
     assert.equal(pickWebEngine(base({ platform, nativeHls: true, hlsJs: false })), 'native-hls', platform);
     assert.equal(pickWebEngine(base({ platform })), 'unsupported', platform);
@@ -46,7 +46,7 @@ test('MPEG-TS needs mpegts.js, and says unsupported where MediaSource is missing
 });
 
 test('files always go to the element', () => {
-  for (const platform of ['ios', 'android', 'tizen', 'webos', 'web'] as Platform[]) {
+  for (const platform of ['ios', 'android', 'fireos', 'tizen', 'webos', 'web'] as Platform[]) {
     assert.equal(pickWebEngine(base({ platform, container: 'file' })), 'file');
   }
 });
@@ -83,7 +83,7 @@ test('live transport: iOS is always the HLS one, even with MediaSource and a pin
 
 test('live captions are offered everywhere but iOS', () => {
   assert.equal(liveCaptionsPossible('ios'), false);
-  for (const p of ['android', 'tizen', 'webos', 'web'] as Platform[]) assert.equal(liveCaptionsPossible(p), true);
+  for (const p of ['android', 'fireos', 'tizen', 'webos', 'web'] as Platform[]) assert.equal(liveCaptionsPossible(p), true);
 });
 
 test('formats iOS cannot open as a film are named; MP4 and friends are not', () => {
@@ -106,7 +106,7 @@ test('formats iOS cannot open as a film are named; MP4 and friends are not', () 
 
 test('the Streamix plugins are Android-only: no registration without the guard', () => {
   assert.equal(streamixPluginsPossible('ios'), false);
-  for (const p of ['android', 'tizen', 'webos', 'web'] as Platform[]) {
+  for (const p of ['android', 'fireos', 'tizen', 'webos', 'web'] as Platform[]) {
     assert.equal(streamixPluginsPossible(p), true, p);
   }
   const files = ['nativePlayer.ts', 'deviceInfo.ts', 'nativeListen.ts'];
