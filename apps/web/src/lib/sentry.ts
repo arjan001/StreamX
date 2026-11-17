@@ -16,7 +16,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import { currentPlatform } from './platform';
+import { currentPlatform } from './platform.ts';
 
 /**
  * Initialize Sentry if a DSN is configured.

@@ -381,12 +381,15 @@ export function normaliseVodInfo(raw: Record<string, unknown>): VodDetail {
     // Panel returned cast as an array of objects with name/image/sex
     cast = rawCast.map((member: unknown) => {
       if (typeof member === 'string') return member;
-      if (member && typeof member === 'object') {
-        return {
-          name: flexStr(member['name']) ?? '',
-          image: flexStr(member['image']) ?? null,
-          sex: flexStr(member['sex']) ?? undefined,
+      if (member && typeof member === 'object' && !Array.isArray(member)) {
+        const obj = member as Record<string, unknown>;
+        const sexVal = flexStr(obj['sex']);
+        const base = {
+          name: flexStr(obj['name']) ?? '',
+          image: flexStr(obj['image']) ?? null,
         };
+        // Only include sex when present — exactOptionalPropertyTypes requires omitting the key, not assigning undefined
+        return sexVal !== null ? { ...base, sex: sexVal } : base;
       }
       return String(member);
     });
