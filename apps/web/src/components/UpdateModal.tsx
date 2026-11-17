@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, X } from 'lucide-react';
+import { Check, Download, X } from 'lucide-react';
 import { useSkin } from '../lib/skin';
 import { focusFirst } from '../lib/spatialNav';
-import { getUpdateRelease, subscribeUpdateRelease } from '../lib/updateState';
+import {
+  getDownloadProgress,
+  getUpdateRelease,
+  resetDownloadProgress,
+  setDownloadProgress,
+  subscribeUpdateRelease,
+} from '../lib/updateState';
 import { recordInstalledVersion } from '../lib/updateCheck';
 import type { ReleaseInfo } from '../lib/updateCheck';
 import { logInfo } from '../lib/sentry';
@@ -15,19 +21,18 @@ import { logInfo } from '../lib/sentry';
  * z-[71] sits between Welcome (z-[70]) and ExpiredDialog (z-[72]).
  *
  * The changelog body comes from the GitHub release notes, rendered as plain text
- * in a scrollable area.
+ * in a scrollable area. Download uses XHR with progress events so the user sees
+ * a live progress bar. Download state is shared via updateState.ts so the banner
+ * also reflects the progress — dismissing the modal does not cancel the download.
  *
- * Download flow: "Update now" triggers the APK download via `window.location.href`,
- * which on Android WebView opens the system download manager. The user sees a
- * notification in the status bar with live progress. When complete, they tap the
- * notification to open Android's built-in package installer — the same flow used
- * by the Play Store, Telegram, VLC, MX Player, and other apps.
+ * This approach is essential for TV users who cannot access the system
+ * notification shade. The install prompt appears directly in the app UI.
  *
- * After the user clicks "Update now", the modal shows a confirmation message
- * telling them to check their notification shade for the download progress.
- * The version is recorded so the modal does not reappear after the app restarts.
- *
- * Dismiss closes the modal and remembers the version for 24 hours.
+ * Three states:
+ * 1. "Update now" — starts the XHR download.
+ * 2. "Downloading..." — shows progress bar with percentage.
+ * 3. "Install" — triggers the APK install via blob URL.
+ * Dismiss closes the modal but keeps the download running in the background.
  */
 export function UpdateModal({
   release,
@@ -38,45 +43,78 @@ export function UpdateModal({
 }) {
   const modern = useSkin().shell === 'modern';
   const panel = useRef<HTMLDivElement | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgressState] = useState(getDownloadProgress);
+
+  const { downloading, percent, completed, blobUrl, error } = progress;
 
   useEffect(() => {
     if (release !== null && panel.current !== null) focusFirst(panel.current);
   }, [release]);
 
+  // Subscribe to shared download progress updates
   useEffect(() => {
-    return subscribeUpdateRelease(() => {});
+    return subscribeUpdateRelease(() => setProgressState(getDownloadProgress()));
   }, []);
 
   /**
-   * Start the APK download using the system download manager.
-   *
-   * On Android WebView (Capacitor), `window.location.href` with a direct APK URL
-   * triggers the system download manager, which shows a notification in the
-   * status bar with live progress. When the user taps the notification, Android
-   * opens the built-in package installer dialog.
-   *
-   * This is preferred over blob downloads because:
-   * - The system handles retries, pauses, and network changes
-   * - Download continues even if the app is backgrounded
-   * - No memory pressure from holding the entire APK in WebView RAM
-   * - Works reliably across all Android WebView versions
-   * - The user sees progress in the system notification shade
+   * Start the APK download using XMLHttpRequest for progress tracking.
+   * The blob is stored in the shared state so both banner and modal can access it.
    */
   const startDownload = useCallback(() => {
     if (release == null || downloading) return;
     const url = release.download_url;
     if (!url) return;
 
-    setDownloading(true);
+    setDownloadProgress({ downloading: true, percent: 0, completed: false, error: false });
     logInfo('Update download started (modal)', { version: release.version });
 
     // Record that the user initiated the install so we don't prompt again
     recordInstalledVersion(release.version);
 
-    // Trigger the system download manager
-    window.location.href = url;
-  }, [release, downloading]);
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+
+    xhr.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const pct = Math.round((event.loaded / event.total) * 100);
+        setDownloadProgress({ percent: pct });
+      } else {
+        setDownloadProgress({ percent: Math.min(percent + 2, 90) });
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const blob = xhr.response as Blob;
+        const blobUrl = URL.createObjectURL(blob);
+        setDownloadProgress({ downloading: false, percent: 100, completed: true, blobUrl });
+        logInfo('Update download completed (modal)', { version: release.version, size: blob.size });
+      } else {
+        setDownloadProgress({ downloading: false, error: true });
+        logInfo('Update download failed (modal)', { version: release.version, status: xhr.status });
+      }
+    };
+
+    xhr.onerror = () => {
+      setDownloadProgress({ downloading: false, error: true });
+      logInfo('Update download network error (modal)', { version: release.version });
+    };
+
+    xhr.send();
+  }, [release, downloading, percent]);
+
+  /** Trigger the install by opening the blob URL. */
+  const triggerInstall = useCallback(() => {
+    if (!blobUrl || !release) return;
+    logInfo('Update install triggered (modal)', { version: release.version });
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `streamix-v${release.version}.apk`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [blobUrl, release]);
 
   if (release === null) return null;
 
@@ -127,36 +165,90 @@ export function UpdateModal({
         )}
 
         <div className="mt-5">
-          {downloading ? (
-            <div className="mb-3 flex items-center gap-3 rounded-lg border border-tally/30 bg-tally/8 px-4 py-3">
-              <Download className="h-5 w-5 shrink-0 animate-pulse text-ground" aria-hidden />
-              <div>
-                <p className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
-                  Download started
-                </p>
-                <p className="text-[length:var(--t-xs)] text-ink-2 tv:text-[length:var(--t-sm)]">
-                  Check your notification shade for progress. Tap the notification when complete to install.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <button
-              data-nav-first
-              type="button"
-              onClick={startDownload}
-              className={`${button} bg-tally/8 border-tally/30`}
-            >
-              <Download className="h-5 w-5 shrink-0 text-ground" aria-hidden />
-              <span className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
-                Update now
+          {error ? (
+            <div className="mb-3 flex items-center gap-3 rounded-lg border border-red-400/30 bg-red-500/8 px-4 py-3">
+              <span className="text-[length:var(--t-md)] font-semibold text-red-300 tv:text-[length:var(--t-lg)]">
+                Download failed
               </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => { setDownloadProgress({ error: false }); startDownload(); }}
+                className="ml-auto card-hover tap rounded-md bg-red-400/20 px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-red-300"
+              >
+                Try again
+              </button>
+            </div>
+          ) : completed && blobUrl ? (
+            <>
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-tally/30 bg-tally/8 px-4 py-3">
+                <Check className="h-5 w-5 shrink-0 text-ground" aria-hidden />
+                <div>
+                  <p className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
+                    Download complete
+                  </p>
+                  <p className="text-[length:var(--t-xs)] text-ink-2 tv:text-[length:var(--t-sm)]">
+                    Tap Install to update the app now.
+                  </p>
+                </div>
+              </div>
+              <button
+                data-nav-first
+                type="button"
+                onClick={triggerInstall}
+                className={`${button} bg-tally/8 border-tally/30`}
+              >
+                <Check className="h-5 w-5 shrink-0 text-ground" aria-hidden />
+                <span className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
+                  Install
+                </span>
+              </button>
+            </>
+          ) : downloading ? (
+            <>
+              {/* Progress bar */}
+              <div className="mb-3 flex items-center gap-3">
+                <Download className={`h-5 w-5 shrink-0 text-ground ${downloading ? 'animate-spin' : ''}`} aria-hidden />
+                <div className="flex-1">
+                  <p className="text-[length:var(--t-sm)] font-medium text-ink tv:text-[length:var(--t-md)]">
+                    Downloading... {percent}%
+                  </p>
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink-1/50">
+                    <div
+                      className="h-full bg-brand transition-all duration-300"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <button type="button" onClick={onDismiss} className={button}>
+                <span className="text-[length:var(--t-md)] text-ink tv:text-[length:var(--t-lg)]">
+                  Dismiss
+                </span>
+              </button>
+              <p className="mt-2 text-center text-[length:var(--t-xs)] text-ink-3 tv:text-[length:var(--t-xs)]">
+                Dismissing keeps the download running.
+              </p>
+            </>
+          ) : (
+            <>
+              <button
+                data-nav-first
+                type="button"
+                onClick={startDownload}
+                className={`${button} bg-tally/8 border-tally/30`}
+              >
+                <Download className="h-5 w-5 shrink-0 text-ground" aria-hidden />
+                <span className="text-[length:var(--t-md)] font-semibold text-ground tv:text-[length:var(--t-lg)]">
+                  Update now
+                </span>
+              </button>
+              <button type="button" onClick={onDismiss} className={button}>
+                <span className="text-[length:var(--t-md)] text-ink tv:text-[length:var(--t-lg)]">
+                  Dismiss
+                </span>
+              </button>
+            </>
           )}
-          <button type="button" onClick={onDismiss} className={button}>
-            <span className="text-[length:var(--t-md)] text-ink tv:text-[length:var(--t-lg)]">
-              Dismiss
-            </span>
-          </button>
         </div>
       </div>
     </div>
