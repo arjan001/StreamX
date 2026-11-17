@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { logInfo } from '../lib/sentry';
 import { ChevronRight, Film, Layers, Search as SearchIcon, Tag, Tv, Tv2, User } from 'lucide-react';
 import { Poster } from '../components/Poster';
 import { HScroll } from '../components/HScroll';
@@ -285,6 +286,8 @@ export function Search() {
 
   const hits = useMemo((): SearchHit[] => {
     if (data === undefined) return [];
+    // Log search results to Sentry for analytics
+    logInfo('Search completed', { query: q, channels: data.live.length, movies: data.movies.length, series: data.series.length });
     let live = data.live;
     let movies = data.movies;
     let series = data.series;

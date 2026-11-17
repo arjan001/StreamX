@@ -21,6 +21,12 @@ import { currentPlatform } from './platform';
 /**
  * Initialize Sentry if a DSN is configured.
  * If no DSN is found, Sentry is silently disabled — no errors are thrown.
+ *
+ * Features enabled:
+ * - Error tracking with release/dist tagging
+ * - Performance tracing (10% sample rate)
+ * - Session Replay (10% session sample, 100% on error)
+ * - User context with platform and device info
  */
 export function initSentry(dsn: string | undefined, appVersion: string | undefined) {
   if (!dsn) {
@@ -36,8 +42,17 @@ export function initSentry(dsn: string | undefined, appVersion: string | undefin
     release: appVersion ? `streamix@${appVersion}` : undefined,
     dist: appVersion ? appVersion.split('+')[1] : undefined,
 
-    // Performance monitoring — sample 10% of transactions to stay within free tier
+    // ── Performance Tracing ──────────────────────────────────────────────
+    // Sample 10% of transactions for performance monitoring.
+    // Traces capture page loads, navigation, API calls, and custom spans.
     tracesSampleRate: 0.1,
+
+    // ── Session Replay ───────────────────────────────────────────────────
+    // Record 10% of user sessions for replay in Sentry dashboard.
+    // When an error occurs, record 100% of sessions for full context.
+    integrations: [Sentry.replayIntegration()],
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
 
     // Error sampling — capture all errors
     sampleRate: 1.0,
@@ -78,7 +93,7 @@ export function initSentry(dsn: string | undefined, appVersion: string | undefin
     },
   });
 
-  console.debug(`[Sentry] Initialized — release: ${appVersion}, platform: ${platform}`);
+  console.debug(`[Sentry] Initialized — release: ${appVersion}, platform: ${platform}, tracing: enabled, replay: enabled`);
 }
 
 /**
@@ -113,8 +128,54 @@ export function captureError(error: Error | string, context?: Record<string, str
 }
 
 /**
- * Capture a custom message (info/warning level).
+ * Capture a custom message at any severity level.
+ * Sentry captures ALL levels, not just errors. Use this for structured logging.
+ *
+ * @example
+ *   // Log important app events
+ *   captureMessage('User added new source', 'info')
+ *   captureMessage('Playback started: Movie Title', 'info')
+ *   captureMessage('Search query: "action movies"', 'debug')
+ *   captureMessage('Slow API response: 3200ms', 'warning')
+ *   captureMessage('Failed to load channel list', 'error')
  */
-export function captureMessage(message: string, level: 'info' | 'warning' = 'info') {
+export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info') {
   Sentry.captureMessage(message, level);
+}
+
+/**
+ * Convenience logging functions — drop-in replacements for console.log that also send to Sentry.
+ * These send to Sentry at the appropriate level, so you can see them in your dashboard.
+ *
+ * @example
+ *   // In any component or module:
+ *   import { logInfo, logWarning, logDebug } from '../lib/sentry'
+ *
+ *   logInfo('Playback started', { title: 'Movie Name', duration: 7200 })
+ *   logWarning('Slow API response', { endpoint: '/get_vod_cat', time: 3200 })
+ *   logDebug('Search executed', { query: 'action', results: 42 })
+ */
+
+/** Log an info-level message to Sentry (visible in dashboard under "info" level) */
+export function logInfo(message: string, context?: Record<string, string | number | boolean>) {
+  Sentry.captureMessage(message, { level: 'info', tags: context, extra: context });
+  console.info(`[App] ${message}`, context || '');
+}
+
+/** Log a warning-level message to Sentry */
+export function logWarning(message: string, context?: Record<string, string | number | boolean>) {
+  Sentry.captureMessage(message, { level: 'warning', tags: context, extra: context });
+  console.warn(`[App] ${message}`, context || '');
+}
+
+/** Log a debug-level message to Sentry (useful for tracing user flows) */
+export function logDebug(message: string, context?: Record<string, string | number | boolean>) {
+  Sentry.captureMessage(message, { level: 'debug', tags: context, extra: context });
+  console.debug(`[App] ${message}`, context || '');
+}
+
+/** Log an error-level message to Sentry (without throwing an exception) */
+export function logError(message: string, context?: Record<string, string | number | boolean>) {
+  Sentry.captureMessage(message, { level: 'error', tags: context, extra: context });
+  console.error(`[App] ${message}`, context || '');
 }

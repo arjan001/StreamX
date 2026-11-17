@@ -1,6 +1,6 @@
 {
-  "name": "StreamX",
-  "wordmark": "STREAMX",
+  "name": "Streamix",
+  "wordmark": "STREAMIX",
   "tagline": "A player for your own sources.",
   "description": "A player for the TV sources you add — playlists, Xtream servers and portals. Contains no channels.",
   "logo": "brand/logo.png",
@@ -18,7 +18,7 @@
     "appStoreUrl": ""
   },
   "publisher": {
-    "name": "StreamX",
+    "name": "Streamix",
     "email": "streamix24.com",
     "website": "https://streamix24.com",
     "address": "",

@@ -6,9 +6,9 @@
  */
 export const BRAND = {
   /** Title case, for sentences: "Streamix could not reach the panel". */
-  name: "StreamX",
+  name: "Streamix",
   /** The header lockup, which is set in the mono face and usually upper case. */
-  wordmark: "STREAMX",
+  wordmark: "STREAMIX",
   tagline: "A player for your own sources.",
   /**
    * The prefix on every diagnostic code this app prints.
@@ -61,7 +61,7 @@ export const BRAND = {
    * visible "[to be filled in]" marker rather than a blank.
    */
   publisher: {
-    name: "StreamX",
+    name: "Streamix",
     email: "streamix24.com",
     address: "",
     website: "https://streamix24.com",

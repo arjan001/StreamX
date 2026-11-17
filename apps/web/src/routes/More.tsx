@@ -741,23 +741,14 @@ export function More() {
           </div>
           <div className="max-h-[60vh] overflow-y-auto px-4 py-4 tv:px-6 tv:py-5">
             {getChangelogForVersion(version) ? (
-              <div className="space-y-3 font-mono text-[length:var(--t-xs)] text-ink-2 tv:text-[length:var(--t-sm)]">
-                {getChangelogForVersion(version)!.split('\n').map((line, i) => {
-                  // Skip empty lines
-                  if (line.trim() === '') return <div key={i} className="h-2" />;
-                  // Section headers
-                  if (line.startsWith('###')) {
-                    return <h4 key={i} className="mt-3 text-[length:var(--t-sm)] font-semibold text-ink tv:text-[length:var(--t-md)]">
-                      {line.replace(/^#+\s*/, '')}
-                    </h4>;
-                  }
-                  // Bullet items
-                  if (line.startsWith('- ')) {
-                    return <p key={i} className="pl-2">{line.replace(/^- /, '• ')}</p>;
-                  }
-                  return <p key={i}>{line}</p>;
-                })}
-              </div>
+              <ul className="space-y-2 font-mono text-[length:var(--t-xs)] text-ink-2 tv:text-[length:var(--t-sm)]">
+                {getChangelogForVersion(version)!.map((item, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="shrink-0 text-tally">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             ) : (
               <p className="font-mono text-[length:var(--t-xs)] text-ink-3 tv:text-[length:var(--t-sm)]">
                 No changelog available for this version.

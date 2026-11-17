@@ -35,14 +35,30 @@ export function legalHtml(page: LegalPage): string {
 export const appVersion = (): { version: string; build: string } => ({ version: VERSION, build: BUILD });
 
 /**
- * Extract the changelog section for a specific version from the bundled CHANGELOG.md.
- * Returns the markdown body for that version, or null if not found.
+ * Extract a simple list of changes for a specific version from the bundled CHANGELOG.md.
+ * Returns a clean array of bullet-point strings, stripping section headers and formatting.
  */
-export function getChangelogForVersion(version: string): string | null {
+export function getChangelogForVersion(version: string): string[] | null {
   // Match "## 1.64.13 (2026-11-15)" pattern
   const re = new RegExp(`^##\\s+${escapeRegex(version)}\\s+\\(\\d{4}-\\d{2}-\\d{2}\\)\\s*$([\\s\\S]*?)(?=^##\\s|$)`, 'm');
   const m = re.exec(changelogRaw);
-  return m?.[1]?.trim() ?? null;
+  if (!m?.[1]) return null;
+
+  // Extract only the bullet points, stripping section headers and bold formatting
+  const lines = m[1].split('\n');
+  const bullets: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Only include actual bullet points, skip headers and empty lines
+    if (trimmed.startsWith('- ')) {
+      // Remove bold markers (**text**) and leading dash
+      let text = trimmed.slice(2);
+      // Remove bold formatting like "**Fixed bug** — description" → "Fixed bug — description"
+      text = text.replace(/\*\*(.+?)\*\*/g, '$1');
+      bullets.push(text.trim());
+    }
+  }
+  return bullets.length > 0 ? bullets : null;
 }
 
 function escapeRegex(s: string): string {

@@ -145,7 +145,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
               {note}
             </p>
 
-            <div className="mt-5 grid gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-3">
               {kind === 'xtream' && (
                 <Choice
                   first

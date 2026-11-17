@@ -22,6 +22,7 @@ import { reopenDoor } from './firstRun.ts';
 import { normaliseMac } from '@iptv/core-stalker';
 import { macProblem } from './providers/stalker.ts';
 import { stalkerSupported } from './platform.ts';
+import { logInfo, logError } from './sentry.ts';
 
 /** Stop playback before the library changes under it; absent where there is no player (tests). */
 async function stopPlayback(): Promise<void> {
@@ -95,6 +96,7 @@ async function addPlaylistShaped(
   const st = localStatus();
   if (st.state === 'error') {
     const why = st.error ?? failure;
+    logError('Source addition failed', { kind: created.kind, reason: why });
     await removeSource(created.id, { keepDoor: true });
     if (before !== null && getProvider(before) !== null) {
       setActiveProvider(before);
@@ -103,6 +105,7 @@ async function addPlaylistShaped(
     return { ok: false, message: why };
   }
   await startSourceSession(`${created.kind}:${created.id}:${Date.now()}`);
+  logInfo('Source added successfully', { kind: created.kind, name: created.name });
   return { ok: true, message: 'Added. Your channels are ready.' };
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Clock, Film, Globe, Layers, Play, Star, Tag, Video, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { GENRE_LABELS } from '@iptv/core-xtream';
-import type { CategoryFacts } from '../lib/api';
+import type { CategoryFacts, VodCastMember } from '../lib/api';
 import { artIsDead } from '../lib/deadArt';
 import { Poster } from './Poster';
 import { apiUrl } from '../lib/api';
@@ -16,7 +16,7 @@ export interface HeroFacts {
   rating: number | null;
   genres: string[];
   plot: string | null;
-  cast: string[];
+  cast: (string | VodCastMember)[];
   mpaa?: string | null;
   duration?: string | null;
   durationSecs?: number | null;
@@ -414,17 +414,35 @@ export function DetailHero({
                         Cast
                       </dt>
                       <dd className="flex flex-wrap gap-1.5">
-                        {facts.cast.slice(0, 12).map((name) => (
-                          <span
-                            key={name}
-                            className="flex items-center gap-1.5 rounded-full bg-panel/60 px-2 py-1 text-[length:var(--t-2xs)] text-ink-2"
-                          >
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-tally/20 text-[length:var(--t-2xs)] font-semibold text-tally">
-                              {getInitials(name)}
+                        {facts.cast.slice(0, 12).map((member) => {
+                          const name = typeof member === 'string' ? member : member.name;
+                          const image = typeof member === 'string' ? null : member.image;
+                          return (
+                            <span
+                              key={name}
+                              className="flex items-center gap-1.5 rounded-full bg-panel/60 px-2 py-1 text-[length:var(--t-2xs)] text-ink-2"
+                            >
+                              {image ? (
+                                <img
+                                  src={image}
+                                  alt={name}
+                                  className="h-5 w-5 shrink-0 rounded-full object-cover"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    // Fallback to initials if image fails
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    const span = e.target?.nextElementSibling;
+                                    if (span) span.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-tally/20 text-[length:var(--t-2xs)] font-semibold text-tally${image ? ' hidden' : ''}`}>
+                                {getInitials(name)}
+                              </span>
+                              <span className="truncate max-w-[120px]">{name}</span>
                             </span>
-                            <span className="truncate max-w-[120px]">{name}</span>
-                          </span>
-                        ))}
+                          );
+                        })}
                       </dd>
                     </div>
                   )}
@@ -519,7 +537,7 @@ export function DetailSpecs({ facts, extra }: { facts: HeroFacts; extra?: SpecRo
     { label: 'Country', value: facts.country },
     { label: 'Rated', value: facts.mpaa },
     // The hero shows the first eight names; the rest belong somewhere.
-    { label: 'Full cast', value: facts.cast.length > 8 ? facts.cast.join(', ') : null },
+    { label: 'Full cast', value: facts.cast.length > 8 ? facts.cast.map(m => typeof m === 'string' ? m : m.name).join(', ') : null },
   ];
   const rows = candidates.filter((r) => r.value !== null && r.value !== undefined && r.value !== '');
   if (rows.length === 0) return null;

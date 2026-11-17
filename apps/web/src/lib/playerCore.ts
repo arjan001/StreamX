@@ -36,6 +36,7 @@ import {
   NEEDS_DEVICE_HINT, audioChoices, subtitleChoices, type FilmTrack,
 } from './filmTracks.ts';
 import { dlog, shortUrl } from './debugLog.ts';
+import { logInfo, logError } from './sentry.ts';
 import { fetchesItsOwnMedia, isNativeShell } from './direct.ts';
 import { nativeWhy } from './nativeWhy.ts';
 import { oneConnectionLine } from './oneConnection.ts';
@@ -2007,6 +2008,7 @@ export class PlayerCore {
   ): Promise<void> {
     const v = this.video;
     if (!v) return;
+    logInfo('Playback started', { label, live: opts?.live ?? target.container === 'hls', key: opts?.key ?? 'unknown' });
     /*
      * Channel open already called `teardown()` so the panel releases the previous
      * connection while the next URL is resolved. Running it again here reset the

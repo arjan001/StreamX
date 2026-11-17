@@ -281,10 +281,16 @@ export function normaliseEpg(raw: Record<string, unknown>): EpgEntry[] {
 }
 
 
+export interface VodCastMember {
+  readonly name: string;
+  readonly image: string | null;
+  readonly sex?: string;
+}
+
 export interface VodDetail {
   readonly name: string | null;
   readonly plot: string | null;
-  readonly cast: string[];
+  readonly cast: (string | VodCastMember)[];
   readonly director: string | null;
   readonly genres: string[];
   readonly country: string | null;
@@ -369,10 +375,30 @@ export function normaliseVodInfo(raw: Record<string, unknown>): VodDetail {
   const audio = objOrNull(info['audio']);
   const runtime = resolveDuration(info);
 
+  const rawCast = info['cast'] ?? info['actors'];
+  let cast: (string | VodCastMember)[];
+  if (Array.isArray(rawCast)) {
+    // Panel returned cast as an array of objects with name/image/sex
+    cast = rawCast.map((member: unknown) => {
+      if (typeof member === 'string') return member;
+      if (member && typeof member === 'object') {
+        return {
+          name: flexStr(member['name']) ?? '',
+          image: flexStr(member['image']) ?? null,
+          sex: flexStr(member['sex']) ?? undefined,
+        };
+      }
+      return String(member);
+    });
+  } else {
+    // Fallback: comma-separated string
+    cast = list(rawCast);
+  }
+
   return {
     name: flexStr(info['name']) ?? flexStr(md['name']),
     plot: flexStr(info['plot']) ?? flexStr(info['description']),
-    cast: list(info['cast'] ?? info['actors']),
+    cast,
     director: flexStr(info['director']),
     genres: list(info['genre']),
     country: flexStr(info['country']),

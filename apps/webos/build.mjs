@@ -121,10 +121,10 @@ function main() {
   const appinfo = {
      id: 'com.streamx.app',
      version: v.version,
-     vendor: 'StreamX',
+     vendor: 'Streamix',
     type: 'web',
     main: 'index.html',
-    title: 'StreamX',
+    title: 'Streamix',
     icon: 'icon.png',
     largeIcon: 'icon-large.png',
     bgColor: '#0b0b0d',

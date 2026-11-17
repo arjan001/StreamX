@@ -130,7 +130,9 @@ export function rememberArchiveFamily(providerId: number, family: ArchiveFamily)
 
 /** A tiny ranged GET, read and discarded — never a real download. */
 const PROBE_RANGE = 'bytes=0-1023';
-const PROBE_TIMEOUT_MS = 8_000;
+const PROBE_TIMEOUT_MS = 5_000;
+/** Total time budget for archive play, including probe. Prevents infinite loading. */
+const ARCHIVE_PLAY_TIMEOUT_MS = 30_000;
 
 async function answersWithMedia(url: string): Promise<boolean> {
   const ctl = new AbortController();
@@ -142,6 +144,22 @@ async function answersWithMedia(url: string): Promise<boolean> {
     return res.ok && !/text|html|json/i.test(type);
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Wrap a promise with a timeout that throws a clear message. */
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try {
+    return await promise;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`archive: ${label} timed out after ${ms / 1000}s`);
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }
@@ -178,36 +196,43 @@ export async function probeArchiveFamily(
 export async function localArchivePlay(
   itemId: number | string, startTs: number, stopTs: number,
 ): Promise<ArchiveTarget | null> {
-  const row = localItem(itemId);
-  if (row === null || row.streamId === null) return null;
-  if (stalkerActive()) {
-    /* Same gate as a panel's catch-up: the channel must say it keeps an archive. */
-    const refusal = gateArchiveRequest(row, startTs, stopTs, Math.floor(Date.now() / 1000));
-    if (refusal !== null) throw new Error(`archive: ${refusal}`);
-    return stalkerArchivePlay(itemId, startTs, stopTs);
-  }
+  // Wrap entire archive play in a timeout to prevent infinite loading
+  return withTimeout(
+    (async () => {
+      const row = localItem(itemId);
+      if (row === null || row.streamId === null) return null;
+      if (stalkerActive()) {
+        /* Same gate as a panel's catch-up: the channel must say it keeps an archive. */
+        const refusal = gateArchiveRequest(row, startTs, stopTs, Math.floor(Date.now() / 1000));
+        if (refusal !== null) throw new Error(`archive: ${refusal}`);
+        return stalkerArchivePlay(itemId, startTs, stopTs);
+      }
 
-  const rawBase = streamBase();
-  const cred = credentials();
-  const provider = activeProvider();
-  if (rawBase === null || cred === null || provider === null) return null;
+      const rawBase = streamBase();
+      const cred = credentials();
+      const provider = activeProvider();
+      if (rawBase === null || cred === null || provider === null) return null;
 
-  const problem = gateArchiveRequest(row, startTs, stopTs, Math.floor(Date.now() / 1000));
-  if (problem !== null) throw new Error(`archive: ${problem}`);
+      const problem = gateArchiveRequest(row, startTs, stopTs, Math.floor(Date.now() / 1000));
+      if (problem !== null) throw new Error(`archive: ${problem}`);
 
-  const base = normaliseServerUrl(rawBase);
-  const win: ArchiveWindow = { startTs, stopTs };
-  const streamId = row.streamId;
+      const base = normaliseServerUrl(rawBase);
+      const win: ArchiveWindow = { startTs, stopTs };
+      const streamId = row.streamId;
 
-  const known = cachedArchiveFamily(provider.id);
-  const family = known ?? await probeArchiveFamily(base, cred, streamId, win);
-  if (family === null) {
-    throw new Error(
-      'archive: this panel answered neither archive endpoint — that is a panel-side '
-      + 'limitation, not a device setting.',
-    );
-  }
-  if (known === null) rememberArchiveFamily(provider.id, family);
+      const known = cachedArchiveFamily(provider.id);
+      const family = known ?? await probeArchiveFamily(base, cred, streamId, win);
+      if (family === null) {
+        throw new Error(
+          'archive: this panel answered neither archive endpoint — that is a panel-side '
+          + 'limitation, not a device setting.',
+        );
+      }
+      if (known === null) rememberArchiveFamily(provider.id, family);
 
-  return buildLocalArchiveTarget(base, cred, streamId, win, family);
+      return buildLocalArchiveTarget(base, cred, streamId, win, family);
+    })(),
+    ARCHIVE_PLAY_TIMEOUT_MS,
+    'archive play',
+  );
 }

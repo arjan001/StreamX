@@ -308,8 +308,14 @@ export interface Hidden {
 /** `epg` puts channels that are likely to have a schedule first — see catalogue.ts. */
 export type SortKey = 'default' | 'name' | 'year' | 'rating' | 'added' | 'epg';
 
+export interface VodCastMember {
+  name: string;
+  image: string | null;
+  sex?: string;
+}
+
 export interface VodDetail {
-  name: string | null; plot: string | null; cast: string[]; director: string | null;
+  name: string | null; plot: string | null; cast: (string | VodCastMember)[]; director: string | null;
   genres: string[]; country: string | null; releaseDate: string | null;
   durationSecs: number | null; duration: string | null; rating: number | null;
   mpaa: string | null; tmdbId: string | null; youtubeTrailer: string | null;

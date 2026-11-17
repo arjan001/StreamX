@@ -34,7 +34,7 @@ export function Adult() {
   const [params, setParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedSex, setSelectedSex] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('covers');
+  const [viewMode, setViewMode] = useState<ViewMode>('tiles');
   const [genderOpen, setGenderOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const { scope } = useScope();
@@ -201,9 +201,9 @@ export function Adult() {
     <div className="flex h-full flex-col">
       {/* Filter bar with search-first layout */}
       <div className="no-round relative border-b border-rule bg-panel/60">
-        {/* Row 1: Search bar (max 75%) + Gender & view controls */}
+        {/* Row 1: Search bar (75%) + Gender filter + View toggle */}
         <div className="relative z-[60] flex items-center gap-2 p-[4px]">
-          {/* Search bar — max 75% width */}
+          {/* Search bar — 75% width */}
           <div className="relative min-w-0" style={{ maxWidth: '75%' }}>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-3" />
             <input
@@ -252,21 +252,22 @@ export function Adult() {
             )}
           </div>
 
-          {/* Gender toggle — inline chips row, matching FilterBar genre style */}
-          <button
-            type="button"
-            aria-expanded={genderOpen}
-            aria-label={genderOpen ? 'Hide gender filters' : 'Show gender filters'}
-            onClick={() => setGenderOpen(!genderOpen)}
-            className={`dest tap flex shrink-0 items-center gap-1.5 border px-2 py-1 font-mono
-              text-[length:var(--t-2xs)] tracking-wider transition-colors touch:py-2
-              ${genderOpen || selectedSex !== null
-                ? 'border-tally text-tally'
-                : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink focus-visible:border-focus focus-visible:text-focus'}`}
-          >
-            <span>Gender{selectedSex ? ` · ${selectedSex}` : ''}</span>
-            <ChevronDown className={`h-3 w-3 transition-transform ${genderOpen ? 'rotate-180' : ''}`} />
-          </button>
+          {/* Gender toggle + View toggle — fill remaining space */}
+          <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+            <button
+              type="button"
+              aria-expanded={genderOpen}
+              aria-label={genderOpen ? 'Hide gender filters' : 'Show gender filters'}
+              onClick={() => setGenderOpen(!genderOpen)}
+              className={`dest tap flex shrink-0 items-center gap-1.5 border px-2 py-1 font-mono
+                text-[length:var(--t-2xs)] tracking-wider transition-colors touch:py-2
+                ${genderOpen || selectedSex !== null
+                  ? 'border-tally text-tally'
+                  : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink focus-visible:border-focus focus-visible:text-focus'}`}
+            >
+              <span>Gender{selectedSex ? ` · ${selectedSex}` : ''}</span>
+              <ChevronDown className={`h-3 w-3 transition-transform ${genderOpen ? 'rotate-180' : ''}`} />
+            </button>
           {genderOpen && (
             <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
               <button
@@ -297,11 +298,11 @@ export function Adult() {
             </div>
           )}
 
-          {/* View mode toggle */}
+          {/* View mode toggle — Covers / Stills */}
           <button
             type="button"
             aria-label={viewMode === 'covers' ? 'Switch to tiles view' : 'Switch to covers view'}
-            title={viewMode === 'covers' ? 'Tiles view' : 'Covers view'}
+            title={viewMode === 'covers' ? 'Stills view' : 'Covers view'}
             onClick={() => setViewMode(viewMode === 'covers' ? 'tiles' : 'covers')}
             className={`${destBtn(false)} shrink-0 px-1.5`}
           >
@@ -311,6 +312,7 @@ export function Adult() {
               <LayoutGrid className="h-3.5 w-3.5" />
             )}
           </button>
+          </div>
         </div>
 
         {/* Row 2: Cast rail with rounded images */}
