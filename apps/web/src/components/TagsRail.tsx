@@ -48,7 +48,7 @@ export function TagsRail({ onTagSelect, selectedTags }: {
       for (let i = 0; i < Math.min(items.length, 500); i += batchSize) {
         const batch = items.slice(i, i + batchSize);
         const results = await Promise.allSettled(
-          batch.map(item => api.movieDetail(item.id))
+          batch.map(item => api.movieDetail(item.id, true))
         );
         for (const result of results) {
           if (result.status === 'fulfilled' && result.value?.detail) {
@@ -172,7 +172,7 @@ export function SexFilterRail({ onSexSelect, selectedSex }: {
       for (let i = 0; i < Math.min(items.length, 200); i += batchSize) {
         const batch = items.slice(i, i + batchSize);
         const results = await Promise.allSettled(
-          batch.map(item => api.movieDetail(item.id))
+          batch.map(item => api.movieDetail(item.id, true))
         );
         for (const result of results) {
           if (result.status === 'fulfilled' && result.value?.detail?.cast) {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, LayoutGrid, List, ChevronDown, User, X } from 'lucide-react';
 import { TagsRail } from '../components/TagsRail';
@@ -98,7 +98,7 @@ export function Adult() {
         for (let i = 0; i < Math.min(items.length, 200); i += batchSize) {
           const batch = items.slice(i, i + batchSize);
           const results = await Promise.allSettled(
-            batch.map(item => api.movieDetail(item.id))
+            batch.map(item => api.movieDetail(item.id, true))
           );
           for (const result of results) {
             if (result.status === 'fulfilled' && result.value?.detail?.cast) {
@@ -197,14 +197,30 @@ export function Adult() {
     setSuggestionsOpen(false);
   }, [filters, setFilters]);
 
+  // View mode toggle dropdown state
+  const [viewOpen, setViewOpen] = useState(false);
+
+  // Close dropdowns when clicking outside
+  const filterBarRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target as Node)) {
+        setGenderOpen(false);
+        setViewOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   return (
     <div className="flex h-full flex-col">
       {/* Filter bar with search-first layout */}
-      <div className="no-round relative border-b border-rule bg-panel/60">
+      <div ref={filterBarRef} className="no-round relative border-b border-rule bg-panel/60">
         {/* Row 1: Search bar (75%) + Gender filter + View toggle */}
         <div className="relative z-[60] flex items-center gap-2 p-[4px]">
           {/* Search bar — 75% width */}
-          <div className="relative min-w-0" style={{ maxWidth: '75%' }}>
+          <div className="relative" style={{ flex: '1 1 75%', maxWidth: '75%' }}>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-3" />
             <input
               value={draft}
@@ -252,13 +268,13 @@ export function Adult() {
             )}
           </div>
 
-          {/* Gender toggle + View toggle — fill remaining space */}
-          <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+          {/* Gender toggle — dropdown style */}
+          <div className="relative flex shrink-0 items-center">
             <button
               type="button"
               aria-expanded={genderOpen}
               aria-label={genderOpen ? 'Hide gender filters' : 'Show gender filters'}
-              onClick={() => setGenderOpen(!genderOpen)}
+              onClick={() => { setGenderOpen(!genderOpen); setViewOpen(false); }}
               className={`dest tap flex shrink-0 items-center gap-1.5 border px-2 py-1 font-mono
                 text-[length:var(--t-2xs)] tracking-wider transition-colors touch:py-2
                 ${genderOpen || selectedSex !== null
@@ -268,50 +284,79 @@ export function Adult() {
               <span>Gender{selectedSex ? ` · ${selectedSex}` : ''}</span>
               <ChevronDown className={`h-3 w-3 transition-transform ${genderOpen ? 'rotate-180' : ''}`} />
             </button>
-          {genderOpen && (
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
-              <button
-                type="button"
-                onClick={() => { handleSexSelect(null); setGenderOpen(false); }}
-                className={`shrink-0 whitespace-nowrap border px-2 py-0.5 font-mono text-[length:var(--t-2xs)] transition-colors
-                  touch:px-2.5 touch:py-1.5 touch:text-[length:var(--t-xs)]
-                  ${!selectedSex
-                    ? 'border-tally bg-tally/10 text-tally'
-                    : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}
-              >
-                All
-              </button>
-              {genderOptions.map((g) => (
+            {genderOpen && (
+              <div className="absolute left-0 top-full z-50 mt-1 flex items-center gap-1.5 rounded-lg border border-rule bg-panel/95 p-2 shadow-lg backdrop-blur">
                 <button
-                  key={g.id}
                   type="button"
-                  onClick={() => { handleSexSelect(g.id); setGenderOpen(false); }}
+                  onClick={() => { handleSexSelect(null); setGenderOpen(false); }}
                   className={`shrink-0 whitespace-nowrap border px-2 py-0.5 font-mono text-[length:var(--t-2xs)] transition-colors
                     touch:px-2.5 touch:py-1.5 touch:text-[length:var(--t-xs)]
-                    ${selectedSex === g.id
+                    ${!selectedSex
                       ? 'border-tally bg-tally/10 text-tally'
                       : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}
                 >
-                  {g.label}
+                  All
                 </button>
-              ))}
-            </div>
-          )}
-
-          {/* View mode toggle — Covers / Stills */}
-          <button
-            type="button"
-            aria-label={viewMode === 'covers' ? 'Switch to tiles view' : 'Switch to covers view'}
-            title={viewMode === 'covers' ? 'Stills view' : 'Covers view'}
-            onClick={() => setViewMode(viewMode === 'covers' ? 'tiles' : 'covers')}
-            className={`${destBtn(false)} shrink-0 px-1.5`}
-          >
-            {viewMode === 'covers' ? (
-              <List className="h-3.5 w-3.5" />
-            ) : (
-              <LayoutGrid className="h-3.5 w-3.5" />
+                {genderOptions.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => { handleSexSelect(g.id); setGenderOpen(false); }}
+                    className={`shrink-0 whitespace-nowrap border px-2 py-0.5 font-mono text-[length:var(--t-2xs)] transition-colors
+                      touch:px-2.5 touch:py-1.5 touch:text-[length:var(--t-xs)]
+                      ${selectedSex === g.id
+                        ? 'border-tally bg-tally/10 text-tally'
+                        : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
             )}
-          </button>
+          </div>
+
+          {/* View mode toggle — dropdown style matching Gender */}
+          <div className="relative flex shrink-0 items-center">
+            <button
+              type="button"
+              aria-expanded={viewOpen}
+              aria-label={viewOpen ? 'Hide view options' : 'Show view options'}
+              onClick={() => { setViewOpen(!viewOpen); setGenderOpen(false); }}
+              className={`dest tap flex shrink-0 items-center gap-1.5 border px-2 py-1 font-mono
+                text-[length:var(--t-2xs)] tracking-wider transition-colors touch:py-2
+                ${viewOpen
+                  ? 'border-tally text-tally'
+                  : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink focus-visible:border-focus focus-visible:text-focus'}`}
+            >
+              <span>{viewMode === 'tiles' ? 'Stills' : 'Covers'}</span>
+              <ChevronDown className={`h-3 w-3 transition-transform ${viewOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {viewOpen && (
+              <div className="absolute left-0 top-full z-50 mt-1 flex flex-col rounded-lg border border-rule bg-panel/95 p-1 shadow-lg backdrop-blur">
+                <button
+                  type="button"
+                  onClick={() => { setViewMode('tiles'); setViewOpen(false); }}
+                  className={`flex items-center gap-2 rounded-md px-3 py-1.5 font-mono text-[length:var(--t-2xs)] transition-colors
+                    ${viewMode === 'tiles'
+                      ? 'bg-tally/10 text-tally'
+                      : 'text-ink-2 hover:bg-tally/5 hover:text-ink'}`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Stills
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setViewMode('covers'); setViewOpen(false); }}
+                  className={`flex items-center gap-2 rounded-md px-3 py-1.5 font-mono text-[length:var(--t-2xs)] transition-colors
+                    ${viewMode === 'covers'
+                      ? 'bg-tally/10 text-tally'
+                      : 'text-ink-2 hover:bg-tally/5 hover:text-ink'}`}
+                >
+                  <List className="h-3.5 w-3.5" />
+                  Covers
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
