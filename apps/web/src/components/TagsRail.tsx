@@ -60,7 +60,8 @@ export function TagsRail({ onTagSelect, selectedTags }: {
               tagList.push(...extractTagsFromDescription(detail.plot));
             }
 
-            // Include API-provided genres, country, year, cast
+            // Include API-provided genres, country, year — but NOT cast names
+            // Cast names belong in the cast rail, not in the tags rail
             if (detail.genres?.length) {
               tagList.push(...detail.genres);
             }
@@ -70,13 +71,6 @@ export function TagsRail({ onTagSelect, selectedTags }: {
             if (detail.releaseDate) {
               const year = detail.releaseDate.substring(0, 4);
               if (year.length === 4) tagList.push(year);
-            }
-            if (detail.cast?.length) {
-              for (const castMember of detail.cast) {
-                if (typeof castMember === 'string') {
-                  tagList.push(castMember);
-                }
-              }
             }
             detailTagItems.push({ tags: tagList });
           }

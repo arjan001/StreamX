@@ -116,67 +116,16 @@ export function UpdateBanner() {
   if (dismissed) return null;
 
   return (
-    <div className="bg-ink-1/80 border-b border-rule/40 px-4 py-2 text-center">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Download className="h-4 w-4 shrink-0 text-ink-3" />
-          <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
-            NEW VERSION <strong className="font-bold">{version}</strong>
-          </span>
-        </div>
-        <div className="flex flex-1 items-center gap-2">
-          {/* Progress bar — shown when downloading */}
-          {downloading && (
-            <div className="flex h-1.5 w-24 overflow-hidden rounded-full bg-ink-1/50">
-              <div
-                className="h-full bg-brand transition-all duration-300"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-          )}
-          {/* Action button */}
-          {error ? (
-            <button
-              type="button"
-              onClick={() => {
-                setDownloadProgress({ error: false });
-                startDownload();
-              }}
-              className="card-hover tap flex items-center gap-1.5 rounded-md bg-red-500/20 px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-red-300"
-            >
-              Retry
-            </button>
-          ) : completed && blobUrl ? (
-            <button
-              type="button"
-              onClick={triggerInstall}
-              className="card-hover tap flex items-center gap-1.5 rounded-md bg-tally/8 px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-ground"
-            >
-              <Check className="h-3.5 w-3.5" />
-              Install
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={startDownload}
-              disabled={downloading}
-              className="card-hover tap flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[length:var(--t-xs)] font-medium text-white disabled:opacity-50"
-            >
-              {downloading ? (
-                <>
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                  </svg>
-                  {percent}%
-                </>
-              ) : (
-                <>
-                  <Download className="h-3.5 w-3.5" />
-                  Update
-                </>
-              )}
-            </button>
-          )}
+    <div className="bg-ink-1/80 border-b border-rule/40 px-4 py-2">
+      <div className="mx-auto max-w-3xl">
+        {/* Header row: version info + dismiss */}
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Download className="h-4 w-4 shrink-0 text-ink-3" />
+            <span className="font-mono text-[length:var(--t-xs)] text-ink-2">
+              NEW VERSION <strong className="font-bold">{version}</strong>
+            </span>
+          </div>
           <button
             type="button"
             onClick={handleDismiss}
@@ -185,6 +134,58 @@ export function UpdateBanner() {
             <X className="h-4 w-4" />
           </button>
         </div>
+        {/* Progress bar — shown when downloading */}
+        {downloading && (
+          <div className="mb-2 flex h-1.5 w-full overflow-hidden rounded-full bg-ink-1/50">
+            <div
+              className="h-full bg-brand transition-all duration-300"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        )}
+        {/* Full-width action button */}
+        {error ? (
+          <button
+            type="button"
+            onClick={() => {
+              setDownloadProgress({ error: false });
+              startDownload();
+            }}
+            className="card-hover tap flex w-full items-center justify-center gap-1.5 rounded-md bg-red-500/20 px-4 py-2 text-[length:var(--t-xs)] font-medium text-red-300"
+          >
+            Retry
+          </button>
+        ) : completed && blobUrl ? (
+          <button
+            type="button"
+            onClick={triggerInstall}
+            className="card-hover tap flex w-full items-center justify-center gap-1.5 rounded-md bg-tally/8 px-4 py-2 text-[length:var(--t-xs)] font-medium text-ground"
+          >
+            <Check className="h-3.5 w-3.5" />
+            Install
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={startDownload}
+            disabled={downloading}
+            className="card-hover tap flex w-full items-center justify-center gap-1.5 rounded-md bg-brand px-4 py-2 text-[length:var(--t-xs)] font-medium text-white disabled:opacity-50"
+          >
+            {downloading ? (
+              <>
+                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                </svg>
+                {percent}%
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5" />
+                Update
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
