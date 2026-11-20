@@ -139,13 +139,6 @@ jobs:
           path: apps/mobile/android/app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk
           retention-days: 30
 
-      - name: Upload APK - x86_64
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-x86_64-debug
-          path: apps/mobile/android/app/build/outputs/apk/debug/app-x86_64-debug.apk
-          retention-days: 30
-
       - name: Upload APK - Universal
         uses: actions/upload-artifact@v4
         with:
@@ -278,12 +271,6 @@ jobs:
           name: app-armeabi-v7a-debug
           path: apk-armv7
 
-      - name: Download APK - x86_64
-        uses: actions/download-artifact@v4
-        with:
-          name: app-x86_64-debug
-          path: apk-x86_64
-
       - name: Download APK - Universal
         uses: actions/download-artifact@v4
         with:
@@ -307,10 +294,6 @@ jobs:
           fi
           if [ -f "apk-armv7/app-armeabi-v7a-debug.apk" ]; then
             cp "apk-armv7/app-armeabi-v7a-debug.apk" "site/streamix-armv7.apk"
-            APK_COUNT=$((APK_COUNT + 1))
-          fi
-          if [ -f "apk-x86_64/app-x86_64-debug.apk" ]; then
-            cp "apk-x86_64/app-x86_64-debug.apk" "site/streamix-x86_64.apk"
             APK_COUNT=$((APK_COUNT + 1))
           fi
           if [ -f "apk-universal/app-universal-debug.apk" ]; then
