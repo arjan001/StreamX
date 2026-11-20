@@ -99,7 +99,7 @@ android {
              * The `android-tv;x86` image is the one that loses — a development
              * rig, not a customer, and not worth 106MB on every unknown box.
              */
-            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
         }
         aaptOptions {
              // Omit sourcemaps from the packaged web bundle — they are for
@@ -126,7 +126,7 @@ android {
         abi {
             enable true
             reset()
-            include 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            include 'arm64-v8a', 'armeabi-v7a'
             universalApk true
         }
     }
